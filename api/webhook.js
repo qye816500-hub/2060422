@@ -197,7 +197,7 @@ async function handleTextMessage(replyToken, text, userId, clients) {
 // ============================================================
 
 function extractThreadsUrls(text) {
-  const regex = /https?:\/\/(www\.)?threads\.net\/[^\s]*/gi;
+  const regex = /https?:\/\/(www\.)?threads\.(net|com)\/[^\s]*/gi;
   return text.match(regex) || [];
 }
 
