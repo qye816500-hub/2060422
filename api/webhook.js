@@ -22,7 +22,6 @@ const SHEETS_ID          = process.env.GOOGLE_SHEETS_ID;
 const DRIVE_FOLDER_ID    = process.env.GOOGLE_DRIVE_FOLDER_ID;
 const CALENDAR_ID        = process.env.GOOGLE_CALENDAR_ID || "primary";
 
-// 工作表分頁名稱（請在試算表內建立這三個分頁）
 const SHEET = {
   THREADS:  "Threads收藏",
   FILES:    "檔案備份",
@@ -145,51 +144,45 @@ async function handleTextMessage(replyToken, text, userId, clients) {
     return;
   }
 
-  // ── 最近 Threads 收藏 ─────────────────────────────────
-  if (/最近.*收藏|最新.*threads|最近.*threads/i.test(lower) || text === "最近收藏") {
+  // ── 最近 Threads 收藏 ────────────────────────────────
+  if (/最近.*收藏|最近.*threads|最近.*thr/i.test(lower) || text === "最近收藏") {
     await handleRecentThreads(replyToken, sheets);
     return;
   }
 
-  // ── 刪除最後一筆 ─────────────────────────────────────
-  if (/^(刪除|delete)\s*(上一筆|最後一筆|last)?$/.test(text.trim())) {
+  // ── 刪除最近一筆 ────────────────────────────────────
+  if (/^(刪除|delete)\s*(刪除最新|最近最新一筆|last)?$/.test(text.trim())) {
     await handleDeleteLast(replyToken, userId, sheets);
     return;
   }
 
-  // ── 最近檔案 ─────────────────────────────────────────
+  // ── 最近檔案 ────────────────────────────────────────
   if (/最近.*檔案|檔案.*最近/.test(text) || text === "最近檔案") {
     await handleRecentFiles(replyToken, sheets);
     return;
   }
 
-  // ── 搜尋檔案 ─────────────────────────────────────────
+  // ── 搜尋檔案 ────────────────────────────────────────
   if (/^(搜尋檔案|找檔案|搜檔案)\s+\S+/.test(text)) {
     const keyword = text.replace(/^(搜尋檔案|找檔案|搜檔案)\s+/, "").trim();
     await handleSearchFiles(replyToken, keyword, sheets);
     return;
   }
 
-  // ── 日曆待辦 ─────────────────────────────────────────
-  if (/提醒|待辦|日曆|行程|開會|會議|早上|下午|晚上|明天|今天|後天|下週|下禮拜/.test(text)) {
+  // ── 新增行事曆 ───────────────────────────────────────
+  if (/明天|行程|提醒|明天|會議|今天|下午|上午|早上|明後天|後天|下週|下周|下星期/.test(text)) {
     await handleCalendar(replyToken, text, userId, calendar, sheets);
     return;
   }
 
-  // ── 說明 ─────────────────────────────────────────────
-  if (/^(說明|help|指令|怎麼用|功能)$/.test(lower)) {
+  // ── 說明 ────────────────────────────────────────────
+  if (/^(說明|help|使用說明|功能|如何使用)$/.test(lower)) {
     await replyHelp(replyToken);
     return;
   }
 
-  // ── 預設提示 ─────────────────────────────────────────
-  await replyText(replyToken,
-    "你好！我可以幫你做這些事：\n\n" +
-    "📌 貼 Threads 連結 → 自動收藏\n" +
-    "📁 傳圖片／檔案 → 自動備份到 Drive\n" +
-    "📅 說待辦事項 → 新增到 Google 日曆\n\n" +
-    "輸入「說明」查看完整指令"
-  );
+  // ── 預設回覆 ────────────────────────────────────────
+  await replyFlex(replyToken, buildMainMenuFlex());
 }
 
 // ============================================================
@@ -202,10 +195,9 @@ function extractThreadsUrls(text) {
 }
 
 async function handleThreadsSave(replyToken, rawText, urls, userId, sheets) {
-  // 連結以外的文字當備註
   let note = rawText;
   urls.forEach(u => { note = note.replace(u, "").trim(); });
-  note = note.replace(/^[\s\-—:：]+/, "").trim();
+  note = note.replace(/^[\s\-—：:]+/, "").trim();
 
   const saved = [];
   for (const url of urls) {
@@ -214,7 +206,6 @@ async function handleThreadsSave(replyToken, rawText, urls, userId, sheets) {
 
     const id  = generateId("T");
     const now = formatDateTime(new Date());
-    // 欄位順序：編號, 連結, 標題, 摘要, 備註, 標籤, userId, 建立時間, 更新時間, 原始訊息
     const row = [id, url, "", "", note, "", userId, now, now, rawText];
     await appendRow(sheets, SHEET.THREADS, row);
     saved.push({ url, id, duplicate: false });
@@ -223,32 +214,39 @@ async function handleThreadsSave(replyToken, rawText, urls, userId, sheets) {
   if (saved.length === 1 && !saved[0].duplicate) {
     await replyFlex(replyToken, buildThreadsSavedFlex(saved[0].url, note));
   } else if (saved.length === 1 && saved[0].duplicate) {
-    await replyText(replyToken, "⚠️ 這個 Threads 連結之前已經收藏過了！");
+    await replyFlex(replyToken, buildEmptyStateFlex(
+      "⚠️ 已收藏過了",
+      "這則 Threads 之前已經收藏過",
+      [{ label: "查看最近收藏", text: "最近收藏" }, { label: "查看全部標籤", text: "查標籤 " }]
+    ));
   } else {
     const lines = saved.map((s, i) =>
-      s.duplicate ? `${i + 1}. ⚠️ 已收藏過（略過）` : `${i + 1}. ✅ 已收藏`
+      s.duplicate ? `${i + 1}. ⚠️ 已收藏` : `${i + 1}. ✅ 已收藏`
     );
     await replyText(replyToken,
-      `📌 收到 ${urls.length} 個連結\n\n${lines.join("\n")}\n\n💡 輸入「標籤 美妝 靈感」幫最後一筆加標籤`
+      `📌 收藏 ${urls.length} 則 Threads\n\n${lines.join("\n")}\n\n💡 請輸入「標籤 ＋標籤名稱」補上標籤`
     );
   }
 }
 
+// ── Threads 收藏成功卡片 ──────────────────────────────────
 function buildThreadsSavedFlex(url, note) {
   const now = formatDateTime(new Date());
   return {
-    type: "flex", altText: "✅ 已收藏這篇 Threads",
+    type: "flex", altText: "📌 Threads 已收藏",
     contents: {
       type: "bubble",
+      styles: { header: { backgroundColor: "#1A1A2E" } },
       header: {
-        type: "box", layout: "vertical",
-        backgroundColor: "#000000", paddingAll: "16px",
-        contents: [{ type: "text", text: "📌 Threads 已收藏", color: "#ffffff", weight: "bold", size: "md" }],
+        type: "box", layout: "vertical", paddingAll: "16px",
+        contents: [
+          { type: "text", text: "📌  Threads 已收藏", color: "#FFFFFF", weight: "bold", size: "md" },
+        ],
       },
       body: {
         type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
         contents: [
-          makeRow("備註", note || "（無備註）"),
+          makeRow("備註", note || "（未填備註）"),
           makeRow("標籤", "未分類"),
           makeRow("時間", now),
         ],
@@ -256,9 +254,18 @@ function buildThreadsSavedFlex(url, note) {
       footer: {
         type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
         contents: [
+          {
+            type: "box", layout: "horizontal", spacing: "sm",
+            contents: [
+              { type: "button", style: "primary", height: "sm", flex: 1,
+                color: "#1A1A2E",
+                action: { type: "uri", label: "開啟 Threads", uri: url } },
+              { type: "button", style: "secondary", height: "sm", flex: 1,
+                action: { type: "message", label: "補上標籤", text: "加標籤 " } },
+            ],
+          },
           { type: "button", style: "link", height: "sm",
-            action: { type: "uri", label: "🔗 開啟 Threads", uri: url } },
-          { type: "text", text: "💡 回覆「標籤 美妝 靈感」來加標籤", size: "xs", color: "#aaaaaa", align: "center" },
+            action: { type: "message", label: "查看最近收藏", text: "最近收藏" } },
         ],
       },
     },
@@ -271,7 +278,7 @@ async function handleAddTag(replyToken, text, userId, sheets) {
 
   const { row: lastRow, index: lastIndex } = await findLastUserRow(sheets, SHEET.THREADS, userId);
   if (lastIndex === -1) {
-    await replyText(replyToken, "找不到最近收藏的 Threads，請先貼上連結。");
+    await replyText(replyToken, "找不到最近的 Threads，請先貼上連結再加標籤。");
     return;
   }
 
@@ -310,16 +317,14 @@ async function handleAddTag(replyToken, text, userId, sheets) {
 
 async function handleEditTag(replyToken, text, userId, sheets) {
   const tagStr = text.replace(/^(改標籤|修改標籤|更改標籤)\s+/, "").trim();
-  const tags   = tagStr.split(/[\s,，、]+/).filter(t => t.length > 0);
-
-  // 和 addTag 邏輯相同，直接覆寫標籤欄
   const fakeText = "標籤 " + tagStr;
   await handleAddTag(replyToken, fakeText, userId, sheets);
 }
 
+// ── 標籤查詢 → Flex 卡片列表 ─────────────────────────────
 async function handleQueryTag(replyToken, tag, sheets) {
   if (!tag) {
-    await replyText(replyToken, "請輸入要查詢的標籤，例如：查標籤 木地板");
+    await replyText(replyToken, "請告訴我要查詢的標籤，例如：查標籤 旅遊");
     return;
   }
 
@@ -328,43 +333,42 @@ async function handleQueryTag(replyToken, tag, sheets) {
   const results = all.reverse().slice(0, 10);
 
   if (results.length === 0) {
-    await replyText(replyToken, `找不到標籤「${tag}」的 Threads。\n輸入「最近收藏」查看所有收藏。`);
+    await replyFlex(replyToken, buildEmptyStateFlex(
+      "找不到符合的內容",
+      `目前沒有標籤「${tag}」的收藏資料`,
+      [
+        { label: "查看最近收藏", text: "最近收藏" },
+        { label: "返回主選單",   text: "說明" },
+      ]
+    ));
     return;
   }
 
-  const lines = results.map((r, i) => {
-    const url  = String(r[1] || "");
-    const note = String(r[4] || "").substring(0, 30) || "（無備註）";
-    const tags = String(r[5] || "未分類");
-    const date = String(r[7] || "").substring(0, 10);
-    return `${i + 1}. ${note}\n   🏷 ${tags}　📅 ${date}\n   🔗 ${url}`;
-  });
-
-  await replyText(replyToken,
-    `🏷 標籤「${tag}」共 ${all.length} 筆（顯示最新 ${results.length} 筆）\n\n${lines.join("\n\n")}`
-  );
+  await replyFlex(replyToken, buildThreadsCarousel(
+    results, `🏷 標籤「${tag}」— 共 ${all.length} 筆`
+  ));
 }
 
+// ── 最近收藏 → Flex 卡片列表 ─────────────────────────────
 async function handleRecentThreads(replyToken, sheets) {
   const data    = await getSheetData(sheets, SHEET.THREADS);
   const results = data.slice(1).reverse().slice(0, 10);
 
   if (results.length === 0) {
-    await replyText(replyToken, "還沒有收藏任何 Threads！");
+    await replyFlex(replyToken, buildEmptyStateFlex(
+      "還沒有收藏",
+      "貼上 Threads 連結就會自動收藏",
+      [{ label: "使用說明", text: "說明" }]
+    ));
     return;
   }
 
-  const lines = results.map((r, i) => {
-    const url  = String(r[1] || "");
-    const note = String(r[4] || "").substring(0, 30) || "（無備註）";
-    const tags = String(r[5] || "未分類");
-    const date = String(r[7] || "").substring(0, 10);
-    return `${i + 1}. ${note}\n   🏷 ${tags}　📅 ${date}\n   🔗 ${url}`;
-  });
-
-  await replyText(replyToken, `📌 最近 ${results.length} 筆 Threads\n\n${lines.join("\n\n")}`);
+  await replyFlex(replyToken, buildThreadsCarousel(
+    results, `📌 最近 ${results.length} 則收藏`
+  ));
 }
 
+// ── 搜尋 Threads → Flex 卡片列表 ─────────────────────────
 async function handleSearchThreads(replyToken, keyword, sheets) {
   const data    = await getSheetData(sheets, SHEET.THREADS);
   const results = data.slice(1)
@@ -373,28 +377,129 @@ async function handleSearchThreads(replyToken, keyword, sheets) {
     .slice(0, 8);
 
   if (results.length === 0) {
-    await replyText(replyToken, `找不到包含「${keyword}」的 Threads。`);
+    await replyFlex(replyToken, buildEmptyStateFlex(
+      "找不到符合的內容",
+      `沒有找到包含「${keyword}」的收藏`,
+      [
+        { label: "查看最近收藏", text: "最近收藏" },
+        { label: "返回主選單",   text: "說明" },
+      ]
+    ));
     return;
   }
 
-  const lines = results.map((r, i) => {
-    const url  = String(r[1] || "");
-    const note = String(r[4] || "").substring(0, 30) || "（無備註）";
-    const tags = String(r[5] || "未分類");
-    const date = String(r[7] || "").substring(0, 10);
-    return `${i + 1}. ${note}\n   🏷 ${tags}　📅 ${date}\n   🔗 ${url}`;
-  });
+  await replyFlex(replyToken, buildThreadsCarousel(
+    results, `🔍「${keyword}」— 共 ${results.length} 筆`
+  ));
+}
 
-  await replyText(replyToken,
-    `🔍 「${keyword}」找到 ${results.length} 筆\n\n${lines.join("\n\n")}`
-  );
+// ── Threads 卡片輪播 ──────────────────────────────────────
+function buildThreadsCarousel(rows, headerTitle) {
+  const MAX_PER_CAROUSEL = 10;
+  const items = rows.slice(0, MAX_PER_CAROUSEL);
+
+  if (items.length <= 5) {
+    // 5 筆以內：橫向 carousel
+    return {
+      type: "flex",
+      altText: headerTitle,
+      contents: {
+        type: "carousel",
+        contents: items.map(r => buildThreadCardBubble(r)),
+      },
+    };
+  }
+
+  // 超過 5 筆：bubble list + 查看更多按鈕
+  return {
+    type: "flex",
+    altText: headerTitle,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box", layout: "vertical",
+        backgroundColor: "#1A1A2E", paddingAll: "14px",
+        contents: [
+          { type: "text", text: headerTitle, color: "#FFFFFF", weight: "bold", size: "sm" },
+        ],
+      },
+      body: {
+        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
+        contents: items.slice(0, 8).map((r, i) => buildThreadListRow(r, i)),
+      },
+      footer: {
+        type: "box", layout: "vertical", paddingAll: "10px",
+        contents: [
+          { type: "button", style: "link", height: "sm",
+            action: { type: "message", label: "查看最近收藏", text: "最近收藏" } },
+        ],
+      },
+    },
+  };
+}
+
+function buildThreadCardBubble(r) {
+  const url  = String(r[1] || "");
+  const note = String(r[4] || "").substring(0, 40) || "（未填備註）";
+  const tags = String(r[5] || "未分類");
+  const date = String(r[7] || "").substring(0, 10);
+
+  return {
+    type: "bubble", size: "kilo",
+    body: {
+      type: "box", layout: "vertical", paddingAll: "14px", spacing: "sm",
+      contents: [
+        { type: "text", text: note, size: "sm", color: "#333333", wrap: true, maxLines: 3 },
+        { type: "separator" },
+        makeRow("標籤", tags),
+        makeRow("日期", date),
+      ],
+    },
+    footer: {
+      type: "box", layout: "vertical", paddingAll: "10px",
+      contents: [
+        { type: "button", style: "primary", height: "sm",
+          color: "#1A1A2E",
+          action: { type: "uri", label: "開啟連結", uri: url } },
+      ],
+    },
+  };
+}
+
+function buildThreadListRow(r, i) {
+  const url  = String(r[1] || "");
+  const note = String(r[4] || "").substring(0, 30) || "（未填備註）";
+  const tags = String(r[5] || "未分類");
+  const date = String(r[7] || "").substring(0, 10);
+
+  return {
+    type: "box", layout: "vertical", spacing: "xs",
+    paddingTop: i === 0 ? "0px" : "8px",
+    contents: [
+      {
+        type: "box", layout: "horizontal",
+        contents: [
+          { type: "text", text: note, size: "sm", color: "#333333", flex: 1, wrap: true, maxLines: 2 },
+          { type: "button", style: "link", height: "sm", flex: 0,
+            action: { type: "uri", label: "開啟", uri: url } },
+        ],
+      },
+      {
+        type: "text",
+        text: `🏷 ${tags}  📅 ${date}`,
+        size: "xs", color: "#888888",
+      },
+      { type: "separator" },
+    ],
+  };
 }
 
 async function handleDeleteLast(replyToken, userId, sheets) {
   const { row: lastRow, index: lastIndex } = await findLastUserRow(sheets, SHEET.THREADS, userId);
 
   if (lastIndex === -1) {
-    await replyText(replyToken, "找不到可以刪除的 Threads。");
+    await replyText(replyToken, "找不到你最近收藏的 Threads。");
     return;
   }
 
@@ -405,7 +510,7 @@ async function handleDeleteLast(replyToken, userId, sheets) {
     range: `${SHEET.THREADS}!A${rowNum}:J${rowNum}`,
   });
 
-  await replyText(replyToken, `🗑 已刪除最後一筆\n${url}`);
+  await replyText(replyToken, `🗑 已刪除最近一筆\n${url}`);
 }
 
 async function checkDuplicateThreads(url, sheets) {
@@ -420,7 +525,7 @@ async function checkDuplicateThreads(url, sheets) {
 async function handleFileMessage(replyToken, message, type, userId, clients) {
   const { sheets, drive } = clients;
 
-  await replyText(replyToken, "📁 收到檔案，正在備份到 Google Drive，請稍候...");
+  await replyText(replyToken, "📁 收到檔案，正在備份到 Google Drive，請稍等...");
 
   const fileBuffer = await downloadLineContent(message.id);
   const fileName   = message.fileName || generateFileName(type, message.id);
@@ -431,7 +536,6 @@ async function handleFileMessage(replyToken, message, type, userId, clients) {
 
   const id  = generateId("F");
   const now = formatDateTime(new Date());
-  // 欄位：編號, 檔名, 類型, MIME, 大小(bytes), DriveID, 永久連結, 標籤, 備註, userId, messageId, 建立時間
   const row = [
     id, fileName, fileType, mimeType,
     fileBuffer.length, driveFile.id, driveFile.webViewLink,
@@ -471,7 +575,6 @@ async function uploadToDrive(drive, fileName, mimeType, buffer, fileType) {
     fields: "id, webViewLink, name",
   });
 
-  // 設定任何人可讀（永久連結）
   await drive.permissions.create({
     fileId: data.id,
     requestBody: { role: "reader", type: "anyone" },
@@ -502,18 +605,19 @@ async function getOrCreateFolder(drive, folderName) {
 function buildFileSavedFlex(fileName, fileType, driveUrl, now) {
   const emoji = { image: "🖼", pdf: "📄", excel: "📊", word: "📝", video: "🎬", other: "📁" };
   return {
-    type: "flex", altText: "📁 檔案備份成功",
+    type: "flex", altText: "📁 檔案備份完成",
     contents: {
       type: "bubble",
+      styles: { header: { backgroundColor: "#1a73e8" } },
       header: {
         type: "box", layout: "vertical",
-        backgroundColor: "#1a73e8", paddingAll: "16px",
-        contents: [{ type: "text", text: "📁 檔案備份成功", color: "#ffffff", weight: "bold", size: "md" }],
+        paddingAll: "16px",
+        contents: [{ type: "text", text: "📁 檔案備份完成", color: "#ffffff", weight: "bold", size: "md" }],
       },
       body: {
         type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
         contents: [
-          makeRow("檔名", fileName),
+          makeRow("檔案名", fileName),
           makeRow("類型", `${emoji[fileType] || "📁"} ${fileType.toUpperCase()}`),
           makeRow("時間", now),
         ],
@@ -522,7 +626,7 @@ function buildFileSavedFlex(fileName, fileType, driveUrl, now) {
         type: "box", layout: "vertical", paddingAll: "12px",
         contents: [
           { type: "button", style: "primary", height: "sm", color: "#1a73e8",
-            action: { type: "uri", label: "🔗 開啟 Google Drive", uri: driveUrl } },
+            action: { type: "uri", label: "🔗 查看 Google Drive", uri: driveUrl } },
         ],
       },
     },
@@ -534,7 +638,11 @@ async function handleRecentFiles(replyToken, sheets) {
   const results = data.slice(1).reverse().slice(0, 10);
 
   if (results.length === 0) {
-    await replyText(replyToken, "還沒有備份任何檔案。");
+    await replyFlex(replyToken, buildEmptyStateFlex(
+      "還沒有備份檔案",
+      "傳送圖片、PDF 或其他檔案就會自動備份",
+      [{ label: "使用說明", text: "說明" }]
+    ));
     return;
   }
 
@@ -543,10 +651,10 @@ async function handleRecentFiles(replyToken, sheets) {
     const type = String(r[2] || "");
     const url  = String(r[6] || "");
     const date = String(r[11] || "").substring(0, 10);
-    return `${i + 1}. ${name}\n   📁 ${type}　📅 ${date}\n   🔗 ${url}`;
+    return `${i + 1}. ${name}\n   📁 ${type}  📅 ${date}\n   🔗 ${url}`;
   });
 
-  await replyText(replyToken, `📁 最近 ${results.length} 筆備份\n\n${lines.join("\n\n")}`);
+  await replyText(replyToken, `📁 最近 ${results.length} 筆檔案\n\n${lines.join("\n\n")}`);
 }
 
 async function handleSearchFiles(replyToken, keyword, sheets) {
@@ -557,7 +665,11 @@ async function handleSearchFiles(replyToken, keyword, sheets) {
     .slice(0, 8);
 
   if (results.length === 0) {
-    await replyText(replyToken, `找不到「${keyword}」相關檔案。`);
+    await replyFlex(replyToken, buildEmptyStateFlex(
+      "找不到符合的內容",
+      `沒有找到包含「${keyword}」的檔案`,
+      [{ label: "查看最近檔案", text: "最近檔案" }]
+    ));
     return;
   }
 
@@ -568,7 +680,7 @@ async function handleSearchFiles(replyToken, keyword, sheets) {
     return `${i + 1}. ${name}\n   📅 ${date}\n   🔗 ${url}`;
   });
 
-  await replyText(replyToken, `🔍 「${keyword}」找到 ${results.length} 筆\n\n${lines.join("\n\n")}`);
+  await replyText(replyToken, `🔍「${keyword}」共 ${results.length} 筆\n\n${lines.join("\n\n")}`);
 }
 
 // ============================================================
@@ -580,10 +692,10 @@ async function handleCalendar(replyToken, text, userId, calendar, sheets) {
 
   if (!parsed) {
     await replyText(replyToken,
-      "⚠️ 我看到待辦，但無法解析時間。\n\n請用這種格式：\n" +
-      "「明天下午3點 開會」\n" +
-      "「4/25 10:00 打電話給客戶」\n" +
-      "「下週一 確認報價」"
+      "⚠️ 我找不到日期，無法建立行程。\n\n請用這樣的格式：\n" +
+      "「明天 下午3點 開會」\n" +
+      "「4/25 10:00 客戶簡報」\n" +
+      "「下週三 記得續約」"
     );
     return;
   }
@@ -605,7 +717,7 @@ async function handleCalendar(replyToken, text, userId, calendar, sheets) {
     await replyFlex(replyToken, buildCalendarFlex(parsed, event));
   } catch (err) {
     console.error("Calendar error:", err);
-    await replyText(replyToken, "⚠️ 建立日曆失敗：" + err.message);
+    await replyText(replyToken, "⚠️ 建立行程失敗：" + err.message);
   }
 }
 
@@ -616,7 +728,6 @@ function parseCalendarInput(text) {
   let targetTime = null;
   let title = text;
 
-  // ── 日期解析 ──
   if (/今天|今日/.test(text)) {
     targetDate = new Date(now);
     title = title.replace(/今天|今日/g, "");
@@ -629,7 +740,7 @@ function parseCalendarInput(text) {
     targetDate.setDate(targetDate.getDate() + 2);
     title = title.replace(/後天/g, "");
   } else {
-    const weekMatch = text.match(/下[週禮拜]+([一二三四五六日天])/);
+    const weekMatch = text.match(/下[週周]?(一|二|三|四|五|六|日|天|週末)?/);
     if (weekMatch) {
       const dayMap = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 0, 天: 0 };
       const target = dayMap[weekMatch[1]];
@@ -640,7 +751,7 @@ function parseCalendarInput(text) {
       targetDate.setDate(targetDate.getDate() + diff);
       title = title.replace(weekMatch[0], "");
     } else {
-      const mdMatch = text.match(/(\d{1,2})[\/月](\d{1,2})[日号]?/);
+      const mdMatch = text.match(/(\d{1,2})[\/月](\d{1,2})[日]?/);
       if (mdMatch) {
         targetDate = new Date(now.getFullYear(), parseInt(mdMatch[1]) - 1, parseInt(mdMatch[2]));
         title = title.replace(mdMatch[0], "");
@@ -650,10 +761,9 @@ function parseCalendarInput(text) {
 
   if (!targetDate) return null;
 
-  // ── 時間解析 ──
-  const isPM = /下午|晚上|傍晚/.test(text);
-  const isAM = /上午|早上/.test(text);
-  const timeMatch = text.match(/(\d{1,2})[:點時](\d{0,2})/);
+  const isPM = /下午|晚上|pm|傍晚/.test(text);
+  const isAM = /上午|早上|am/.test(text);
+  const timeMatch = text.match(/(\d{1,2})[:\點時](\d{0,2})/);
 
   if (timeMatch) {
     let hour  = parseInt(timeMatch[1]);
@@ -664,12 +774,11 @@ function parseCalendarInput(text) {
     title = title.replace(timeMatch[0], "");
   }
 
-  // ── 清理標題 ──
   title = title
-    .replace(/上午|早上|下午|晚上|傍晚|中午|提醒我|提醒/g, "")
+    .replace(/上午|早上|下午|晚上|傍晚|pm|am/gi, "")
     .replace(/\s+/g, " ")
     .trim();
-  if (!title) title = "待辦事項";
+  if (!title) title = "行程待辦";
 
   const start    = new Date(targetDate);
   const isAllDay = !targetTime;
@@ -716,17 +825,18 @@ function buildCalendarFlex(parsed, event) {
     type: "flex", altText: `✅ 已新增：${parsed.title}`,
     contents: {
       type: "bubble",
+      styles: { header: { backgroundColor: "#0F9D58" } },
       header: {
         type: "box", layout: "vertical",
-        backgroundColor: "#0F9D58", paddingAll: "16px",
+        paddingAll: "16px",
         contents: [{ type: "text", text: "✅ 已新增到 Google 日曆", color: "#ffffff", weight: "bold", size: "md" }],
       },
       body: {
         type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
         contents: [
-          makeRow("標題", parsed.title),
+          makeRow("行程", parsed.title),
           makeRow("時間", timeStr),
-          makeRow("提醒", parsed.isAllDay ? "（全天，無提醒）" : "事件前 10 分鐘"),
+          makeRow("提醒", parsed.isAllDay ? "（全天，無提醒）" : "開始前 10 分鐘"),
         ],
       },
       footer: event.htmlLink
@@ -734,7 +844,7 @@ function buildCalendarFlex(parsed, event) {
             type: "box", layout: "vertical", paddingAll: "12px",
             contents: [
               { type: "button", style: "primary", height: "sm", color: "#0F9D58",
-                action: { type: "uri", label: "📅 開啟 Google 日曆", uri: event.htmlLink } },
+                action: { type: "uri", label: "📅 查看 Google 日曆", uri: event.htmlLink } },
             ],
           }
         : undefined,
@@ -743,58 +853,96 @@ function buildCalendarFlex(parsed, event) {
 }
 
 // ============================================================
-//  說明訊息
+//  主選單卡片
 // ============================================================
 
-async function replyHelp(replyToken) {
-  await replyFlex(replyToken, {
-    type: "flex", altText: "📋 使用說明",
+function buildMainMenuFlex() {
+  return {
+    type: "flex", altText: "你好！我可以幫你做這些事",
     contents: {
       type: "bubble", size: "mega",
+      styles: { header: { backgroundColor: "#1A1A2E" } },
       header: {
-        type: "box", layout: "vertical",
-        backgroundColor: "#2C3E50", paddingAll: "16px",
-        contents: [{ type: "text", text: "📋 使用說明", color: "#ffffff", weight: "bold", size: "lg" }],
+        type: "box", layout: "vertical", paddingAll: "20px",
+        contents: [
+          { type: "text", text: "你好！我可以幫你做這些事", color: "#FFFFFF", weight: "bold", size: "md" },
+        ],
       },
       body: {
         type: "box", layout: "vertical", paddingAll: "16px", spacing: "lg",
         contents: [
-          helpSection("📌 Threads 收藏", [
-            "貼上連結 → 自動收藏",
-            "標籤 美妝 靈感 → 加標籤",
-            "改標籤 企劃 素材 → 修改標籤",
-            "查標籤 木地板 或 #木地板 → 查詢",
-            "搜尋 保養 → 關鍵字搜尋",
-            "最近收藏 → 最新 10 筆",
-            "刪除上一筆 → 刪除最後一筆",
-          ]),
-          helpSection("📁 檔案備份", [
-            "傳圖片／PDF／檔案 → 自動備份到 Drive",
-            "最近檔案 → 最新 10 筆",
-            "找檔案 報價 → 搜尋檔名",
-          ]),
-          helpSection("📅 日曆待辦", [
-            "明天下午3點 開會",
-            "4/25 10:00 打電話給客戶",
-            "下週一 確認報價",
-            "今天晚上8點 整理文件",
-          ]),
+          menuItem("📌", "貼 Threads 連結", "自動收藏，可加備註與標籤"),
+          { type: "separator" },
+          menuItem("📁", "傳圖片／檔案", "自動備份到 Google Drive"),
+          { type: "separator" },
+          menuItem("📅", "說待辦事項", "新增到 Google 日曆"),
+        ],
+      },
+      footer: {
+        type: "box", layout: "horizontal", paddingAll: "12px", spacing: "sm",
+        contents: [
+          { type: "button", style: "secondary", height: "sm", flex: 1,
+            action: { type: "message", label: "最近收藏", text: "最近收藏" } },
+          { type: "button", style: "secondary", height: "sm", flex: 1,
+            action: { type: "message", label: "使用說明", text: "說明" } },
+          { type: "button", style: "secondary", height: "sm", flex: 1,
+            action: { type: "message", label: "查看標籤", text: "查標籤 " } },
         ],
       },
     },
-  });
+  };
 }
 
-function helpSection(title, items) {
+function menuItem(icon, title, desc) {
   return {
-    type: "box", layout: "vertical", spacing: "xs",
+    type: "box", layout: "horizontal", spacing: "md",
     contents: [
-      { type: "text", text: title, size: "sm", weight: "bold", color: "#2C3E50" },
-      ...items.map(t => ({
-        type: "text", text: `• ${t}`, size: "xs", color: "#555555", wrap: true,
-      })),
-      { type: "separator" },
+      { type: "text", text: icon, size: "xl", flex: 0, gravity: "center" },
+      {
+        type: "box", layout: "vertical", flex: 1,
+        contents: [
+          { type: "text", text: title, size: "sm", weight: "bold", color: "#1A1A2E" },
+          { type: "text", text: desc, size: "xs", color: "#888888", wrap: true },
+        ],
+      },
     ],
+  };
+}
+
+// ============================================================
+//  說明卡片
+// ============================================================
+
+async function replyHelp(replyToken) {
+  await replyFlex(replyToken, buildMainMenuFlex());
+}
+
+// ============================================================
+//  空狀態卡片（通用）
+// ============================================================
+
+function buildEmptyStateFlex(title, description, buttons = []) {
+  return {
+    type: "flex", altText: title,
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box", layout: "vertical", paddingAll: "24px", spacing: "md",
+        contents: [
+          { type: "text", text: title, weight: "bold", size: "md", color: "#333333", align: "center" },
+          { type: "text", text: description, size: "sm", color: "#888888", wrap: true, align: "center" },
+        ],
+      },
+      footer: buttons.length > 0
+        ? {
+            type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
+            contents: buttons.map(b => ({
+              type: "button", style: "secondary", height: "sm",
+              action: { type: "message", label: b.label, text: b.text },
+            })),
+          }
+        : undefined,
+    },
   };
 }
 
@@ -817,7 +965,7 @@ function makeRow(label, value) {
 // ============================================================
 
 function generateId(prefix) {
-  const ts  = new Date().toISOString().replace(/[-:T.Z]/g, "").substring(0, 14);
+  const ts  = new Date().toISOString().replace(/[:\-T.Z]/g, "").substring(0, 14);
   const rnd = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
   return `${prefix}${ts}${rnd}`;
 }
@@ -881,7 +1029,7 @@ function classifyFileType(type, fileName) {
   return "other";
 }
 
-// ── Sheets 工具 ───────────────────────────────────────────
+// ── Sheets 工具 ──────────────────────────────────────────────
 
 async function getSheetData(sheets, sheetName) {
   const res = await sheets.spreadsheets.values.get({
@@ -901,7 +1049,6 @@ async function appendRow(sheets, sheetName, row) {
   });
 }
 
-// 找某個 userId 在指定工作表的最後一筆資料
 async function findLastUserRow(sheets, sheetName, userId) {
   const data = await getSheetData(sheets, sheetName);
   for (let i = data.length - 1; i >= 1; i--) {
