@@ -1,3 +1,8 @@
 {
-  "version": 2
+  "version": 2,
+  "routes": [
+    { "src": "/api/auth/callback", "dest": "/api/auth.js" },
+    { "src": "/api/auth", "dest": "/api/auth.js" },
+    { "src": "/api/webhook", "dest": "/api/webhook.js" }
+  ]
 }
