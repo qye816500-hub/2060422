@@ -14,7 +14,7 @@ const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || "primary";
 
 const SHEET = {
-  THREADS: "\u7DFF\u7A0B\u6536\u85CF",
+THREADS: "Threads\u6536\u85CF",
   FILES: "\u6A94\u6848\u5099\u4EFD",
   CALENDAR: "\u65E5\u66C6\u5F85\u8FA6",
   TODOS: "\u5F85\u8FA6\u6E05\u55AE",
