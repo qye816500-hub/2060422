@@ -471,7 +471,7 @@ async function handleCompleteTodoByIndex(replyToken, index, userId, sheets) {
   }
 
   const target = pendingRows[index - 1];
-  const rowNum = target.idx + 2;
+  const rowNum = target.idx + 1;
   const content = String(target.row[1] || "");
 
   await sheets.spreadsheets.values.update({
@@ -506,7 +506,7 @@ async function handleDeleteTodoByIndex(replyToken, index, userId, sheets) {
   }
 
   const target = pendingRows[index - 1];
-  const rowNum = target.idx + 2;
+  const rowNum = target.idx + 1;
   const content = String(target.row[1] || "");
 
   await sheets.spreadsheets.values.update({
