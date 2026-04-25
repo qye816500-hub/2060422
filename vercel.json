@@ -1,8 +1,13 @@
 {
   "version": 2,
   "routes": [
+    { "src": "/liff", "dest": "/liff.html" },
     { "src": "/api/auth/callback", "dest": "/api/auth.js" },
     { "src": "/api/auth", "dest": "/api/auth.js" },
-    { "src": "/api/webhook", "dest": "/api/webhook.js" }
+    { "src": "/api/webhook", "dest": "/api/webhook.js" },
+    { "src": "/api/bookmarks", "dest": "/api/bookmarks.js" },
+    { "src": "/api/todos/([^/]+)", "dest": "/api/todos.js" },
+    { "src": "/api/todos", "dest": "/api/todos.js" },
+    { "src": "/api/files", "dest": "/api/files.js" }
   ]
 }
