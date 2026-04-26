@@ -8,6 +8,7 @@
     { "src": "/api/bookmarks", "dest": "/api/bookmarks.js" },
     { "src": "/api/todos/([^/]+)", "dest": "/api/todos.js" },
     { "src": "/api/todos", "dest": "/api/todos.js" },
-    { "src": "/api/files", "dest": "/api/files.js" }
+    { "src": "/api/files", "dest": "/api/files.js" },
+    { "src": "/api/setup-richmenu", "dest": "/api/setup-richmenu.js" }
   ]
 }
