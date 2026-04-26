@@ -24,454 +24,156 @@
     --shadow: 0 4px 20px rgba(180,120,100,0.12);
     --radius: 20px;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; top: -100px; right: -100px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,183,197,0.3) 0%, transparent 70%); z-index: 0; pointer-events: none; }
+  body::after { content: ''; position: fixed; bottom: -80px; left: -80px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(181,234,215,0.3) 0%, transparent 70%); z-index: 0; pointer-events: none; }
 
-  body {
-    font-family: 'Nunito', sans-serif;
-    background: var(--cream);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Background decoration */
-  body::before {
-    content: '';
-    position: fixed;
-    top: -100px; right: -100px;
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(255,183,197,0.3) 0%, transparent 70%);
-    z-index: 0; pointer-events: none;
-  }
-  body::after {
-    content: '';
-    position: fixed;
-    bottom: -80px; left: -80px;
-    width: 250px; height: 250px;
-    background: radial-gradient(circle, rgba(181,234,215,0.3) 0%, transparent 70%);
-    z-index: 0; pointer-events: none;
-  }
-
-  /* Header */
-  .header {
-    background: linear-gradient(135deg, var(--pink) 0%, var(--lavender) 100%);
-    padding: 20px 20px 16px;
-    position: sticky; top: 0; z-index: 100;
-    box-shadow: 0 2px 16px rgba(180,120,200,0.2);
-  }
-  .header-top {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px;
-  }
-  .header-title {
-    font-size: 22px; font-weight: 800;
-    color: var(--white);
-    text-shadow: 0 2px 8px rgba(100,50,150,0.2);
-    display: flex; align-items: center; gap: 8px;
-  }
-  .header-avatar {
-    width: 40px; height: 40px; border-radius: 50%;
-    background: white; overflow: hidden;
-    border: 3px solid rgba(255,255,255,0.6);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-  }
+  .header { background: linear-gradient(135deg, var(--pink) 0%, var(--lavender) 100%); padding: 20px 20px 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 16px rgba(180,120,200,0.2); }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .header-title { font-size: 22px; font-weight: 800; color: var(--white); text-shadow: 0 2px 8px rgba(100,50,150,0.2); display: flex; align-items: center; gap: 8px; }
+  .header-avatar { width: 40px; height: 40px; border-radius: 50%; background: white; overflow: hidden; border: 3px solid rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; font-size: 20px; }
   .header-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-  /* Nav tabs */
-  .nav {
-    display: flex; gap: 6px;
-    overflow-x: auto; scrollbar-width: none;
-  }
+  .nav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
   .nav::-webkit-scrollbar { display: none; }
-  .nav-btn {
-    flex-shrink: 0;
-    background: rgba(255,255,255,0.3);
-    border: none; border-radius: 20px;
-    padding: 8px 16px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 13px; font-weight: 700;
-    color: white; cursor: pointer;
-    transition: all 0.2s;
-    display: flex; align-items: center; gap: 5px;
-  }
-  .nav-btn.active {
-    background: white;
-    color: var(--brown);
-    box-shadow: 0 2px 10px rgba(100,50,150,0.2);
-  }
-  .nav-btn:hover { transform: translateY(-1px); }
+  .nav-btn { flex-shrink: 0; background: rgba(255,255,255,0.3); border: none; border-radius: 20px; padding: 8px 16px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; color: white; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; }
+  .nav-btn.active { background: white; color: var(--brown); box-shadow: 0 2px 10px rgba(100,50,150,0.2); }
 
-  /* Main content */
   .main { padding: 20px; position: relative; z-index: 1; }
-
-  /* Section */
   .section { display: none; }
   .section.active { display: block; }
 
-  /* Card */
-  .card {
-    background: white;
-    border-radius: var(--radius);
-    padding: 18px;
-    margin-bottom: 14px;
-    box-shadow: var(--shadow);
-    border: 2px solid transparent;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-  .card::before {
-    content: '';
-    position: absolute; top: 0; left: 0;
-    width: 4px; height: 100%;
-    background: linear-gradient(to bottom, var(--pink), var(--lavender));
-  }
+  .card { background: white; border-radius: var(--radius); margin-bottom: 14px; box-shadow: var(--shadow); border: 2px solid transparent; transition: all 0.2s; overflow: hidden; }
   .card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(180,120,100,0.18); }
+  .card-body { padding: 16px; }
+  .card-accent { width: 4px; background: linear-gradient(to bottom, var(--pink), var(--lavender)); flex-shrink: 0; }
 
-  .card-header {
-    display: flex; align-items: flex-start;
-    justify-content: space-between; gap: 10px;
-    margin-bottom: 10px;
-  }
-  .card-title {
-    font-size: 15px; font-weight: 700;
-    color: var(--text); flex: 1;
-    line-height: 1.4;
-  }
-  .card-meta {
-    font-size: 12px; color: var(--text-light);
-    display: flex; flex-wrap: wrap; gap: 8px;
-    align-items: center;
-  }
-  .badge {
-    display: inline-flex; align-items: center; gap: 3px;
-    padding: 3px 10px; border-radius: 20px;
-    font-size: 11px; font-weight: 700;
-  }
+  /* Bookmark card with preview image */
+  .bookmark-card { display: flex; flex-direction: column; }
+  .bookmark-preview { width: 100%; height: 160px; object-fit: cover; background: #F5F0FF; display: block; }
+  .bookmark-preview-placeholder { width: 100%; height: 100px; background: linear-gradient(135deg, #F5F0FF, #FFE8F0); display: flex; align-items: center; justify-content: center; font-size: 40px; }
+  .bookmark-inner { display: flex; }
+
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .card-title { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; line-height: 1.4; word-break: break-all; }
+  .card-meta { font-size: 12px; color: var(--text-light); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
   .badge-pink { background: #FFE8ED; color: #FF6B8A; }
   .badge-mint { background: #E0F7EF; color: #3DAA7F; }
   .badge-yellow { background: #FFF5D6; color: #C69000; }
   .badge-lavender { background: #EDE4FF; color: #7B4FBF; }
   .badge-gray { background: #F0EDED; color: #888; }
 
-  .card-actions {
-    display: flex; gap: 8px; margin-top: 12px;
-    flex-wrap: wrap;
-  }
-  .btn {
-    flex: 1; min-width: 80px;
-    border: none; border-radius: 12px;
-    padding: 10px 14px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 13px; font-weight: 700;
-    cursor: pointer; transition: all 0.2s;
-    display: flex; align-items: center;
-    justify-content: center; gap: 5px;
-  }
+  .card-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .btn { flex: 1; min-width: 80px; border: none; border-radius: 12px; padding: 10px 14px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
   .btn:hover { transform: translateY(-1px); }
-  .btn:active { transform: translateY(0); }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--pink-deep), var(--lavender-deep));
-    color: white;
-    box-shadow: 0 3px 12px rgba(180,100,200,0.3);
-  }
-  .btn-secondary {
-    background: #F5F0FF; color: var(--brown);
-  }
-  .btn-success {
-    background: linear-gradient(135deg, var(--mint), var(--mint-deep));
-    color: white;
-    box-shadow: 0 3px 12px rgba(100,200,160,0.3);
-  }
-  .btn-danger {
-    background: #FFE8ED; color: #FF4D6D;
-  }
-  .btn-link {
-    background: linear-gradient(135deg, #FFE066, #FFD000);
-    color: #7B5000;
-    box-shadow: 0 3px 12px rgba(255,200,0,0.3);
-  }
+  .btn-primary { background: linear-gradient(135deg, var(--pink-deep), var(--lavender-deep)); color: white; box-shadow: 0 3px 12px rgba(180,100,200,0.3); }
+  .btn-secondary { background: #F5F0FF; color: var(--brown); }
+  .btn-success { background: linear-gradient(135deg, var(--mint), var(--mint-deep)); color: white; }
+  .btn-danger { background: #FFE8ED; color: #FF4D6D; }
+  .btn-link { background: linear-gradient(135deg, #FFE066, #FFD000); color: #7B5000; box-shadow: 0 3px 12px rgba(255,200,0,0.3); }
 
-  /* Section title */
-  .section-title {
-    font-size: 20px; font-weight: 800;
-    color: var(--text); margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .section-title span { font-size: 24px; }
+  .section-title { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 
-  /* Filter tabs */
-  .filter-tabs {
-    display: flex; gap: 8px; margin-bottom: 16px;
-    overflow-x: auto; scrollbar-width: none;
-    padding-bottom: 2px;
-  }
+  .filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
   .filter-tabs::-webkit-scrollbar { display: none; }
-  .filter-tab {
-    flex-shrink: 0;
-    padding: 8px 16px; border-radius: 20px;
-    border: 2px solid #EDE4FF;
-    background: white;
-    font-family: 'Nunito', sans-serif;
-    font-size: 13px; font-weight: 700;
-    color: var(--text-light); cursor: pointer;
-    transition: all 0.2s;
-  }
-  .filter-tab.active {
-    background: linear-gradient(135deg, var(--pink), var(--lavender));
-    color: white; border-color: transparent;
-    box-shadow: 0 3px 12px rgba(180,100,200,0.25);
-  }
+  .filter-tab { flex-shrink: 0; padding: 8px 16px; border-radius: 20px; border: 2px solid #EDE4FF; background: white; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-light); cursor: pointer; transition: all 0.2s; }
+  .filter-tab.active { background: linear-gradient(135deg, var(--pink), var(--lavender)); color: white; border-color: transparent; box-shadow: 0 3px 12px rgba(180,100,200,0.25); }
 
-  /* Empty state */
-  .empty {
-    text-align: center; padding: 50px 20px;
-  }
+  .empty { text-align: center; padding: 50px 20px; }
   .empty-icon { font-size: 60px; margin-bottom: 16px; }
   .empty-text { font-size: 16px; font-weight: 700; color: var(--text-light); }
   .empty-sub { font-size: 13px; color: #C0B8B5; margin-top: 6px; }
 
-  /* Loading */
-  .loading {
-    text-align: center; padding: 40px;
-  }
-  .loading-dots {
-    display: flex; justify-content: center; gap: 8px;
-  }
-  .dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--pink);
-    animation: bounce 1.2s infinite ease-in-out;
-  }
+  .loading { text-align: center; padding: 40px; }
+  .loading-dots { display: flex; justify-content: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--pink); animation: bounce 1.2s infinite ease-in-out; }
   .dot:nth-child(2) { animation-delay: 0.2s; background: var(--lavender); }
   .dot:nth-child(3) { animation-delay: 0.4s; background: var(--mint-deep); }
-  @keyframes bounce {
-    0%, 80%, 100% { transform: scale(0.8); opacity: 0.6; }
-    40% { transform: scale(1.2); opacity: 1; }
-  }
+  @keyframes bounce { 0%, 80%, 100% { transform: scale(0.8); opacity: 0.6; } 40% { transform: scale(1.2); opacity: 1; } }
 
-  /* Todo item */
-  .todo-item {
-    display: flex; align-items: flex-start; gap: 12px;
-  }
-  .todo-check {
-    width: 24px; height: 24px; border-radius: 50%;
-    border: 2px solid var(--pink-deep);
-    flex-shrink: 0; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s; background: white;
-    margin-top: 2px;
-  }
+  .todo-item { display: flex; align-items: flex-start; gap: 12px; }
+  .todo-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--pink-deep); flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: white; margin-top: 2px; }
   .todo-check:hover { background: var(--pink); border-color: var(--pink); }
-  .todo-check.done {
-    background: var(--mint-deep); border-color: var(--mint-deep);
-    color: white;
-  }
+  .todo-check.done { background: var(--mint-deep); border-color: var(--mint-deep); color: white; }
   .todo-content { flex: 1; }
   .todo-text { font-size: 15px; font-weight: 600; line-height: 1.4; }
-  .todo-remind {
-    font-size: 12px; color: var(--pink-deep);
-    font-weight: 700; margin-top: 4px;
-    display: flex; align-items: center; gap: 4px;
-  }
+  .todo-remind { font-size: 12px; color: var(--pink-deep); font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
 
-  /* Calendar */
-  .calendar-grid {
-    display: grid; grid-template-columns: repeat(7, 1fr);
-    gap: 4px; margin-bottom: 16px;
-  }
-  .cal-header {
-    text-align: center; font-size: 12px;
-    font-weight: 800; color: var(--text-light);
-    padding: 6px 0;
-  }
-  .cal-day {
-    text-align: center; padding: 8px 4px;
-    border-radius: 12px; font-size: 13px;
-    font-weight: 600; cursor: pointer;
-    transition: all 0.2s; position: relative;
-  }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px; }
+  .cal-header { text-align: center; font-size: 12px; font-weight: 800; color: var(--text-light); padding: 6px 0; }
+  .cal-day { text-align: center; padding: 8px 4px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; position: relative; }
   .cal-day:hover { background: #FFF0F5; }
-  .cal-day.today {
-    background: linear-gradient(135deg, var(--pink), var(--lavender));
-    color: white; font-weight: 800;
-  }
-  .cal-day.has-event::after {
-    content: '';
-    position: absolute; bottom: 3px;
-    left: 50%; transform: translateX(-50%);
-    width: 5px; height: 5px; border-radius: 50%;
-    background: var(--pink-deep);
-  }
+  .cal-day.today { background: linear-gradient(135deg, var(--pink), var(--lavender)); color: white; font-weight: 800; }
+  .cal-day.has-event::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--pink-deep); }
   .cal-day.today.has-event::after { background: white; }
   .cal-day.other-month { color: #D0C8C5; }
-  .cal-nav {
-    display: flex; align-items: center;
-    justify-content: space-between; margin-bottom: 16px;
-  }
-  .cal-nav-btn {
-    width: 36px; height: 36px; border-radius: 50%;
-    border: none; background: white;
-    box-shadow: var(--shadow); cursor: pointer;
-    font-size: 16px; transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center;
-  }
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .cal-nav-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: white; box-shadow: var(--shadow); cursor: pointer; font-size: 16px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
   .cal-nav-btn:hover { background: var(--pink); color: white; }
   .cal-month { font-size: 18px; font-weight: 800; }
 
-  /* File item */
-  .file-icon {
-    width: 44px; height: 44px; border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; flex-shrink: 0;
-  }
+  /* File card with thumbnail */
+  .file-card { display: flex; flex-direction: column; }
+  .file-thumb { width: 100%; height: 180px; object-fit: cover; background: #F5F0FF; display: block; }
+  .file-thumb-placeholder { width: 100%; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
+  .file-inner { display: flex; align-items: center; gap: 14px; }
+  .file-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
   .file-info { flex: 1; min-width: 0; }
-  .file-name {
-    font-size: 14px; font-weight: 700;
-    white-space: nowrap; overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .file-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .file-meta { font-size: 12px; color: var(--text-light); margin-top: 3px; }
 
-  /* Toast */
-  .toast {
-    position: fixed; bottom: 30px; left: 50%;
-    transform: translateX(-50%) translateY(100px);
-    background: var(--text); color: white;
-    padding: 12px 24px; border-radius: 20px;
-    font-size: 14px; font-weight: 700;
-    z-index: 1000; transition: transform 0.3s ease;
-    white-space: nowrap;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-  }
+  .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: white; padding: 12px 24px; border-radius: 20px; font-size: 14px; font-weight: 700; z-index: 1000; transition: transform 0.3s ease; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
-  /* Floating deco */
-  .deco {
-    position: fixed; pointer-events: none; z-index: 0;
-    font-size: 24px; opacity: 0.12;
-    animation: float 6s ease-in-out infinite;
-  }
-  @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-15px) rotate(10deg); }
-  }
+  .deco { position: fixed; pointer-events: none; z-index: 0; font-size: 24px; opacity: 0.12; animation: float 6s ease-in-out infinite; }
+  @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-15px) rotate(10deg); } }
+  .fade-in { animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* Fade in */
-  .fade-in {
-    animation: fadeIn 0.4s ease;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Modal */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(100,50,120,0.3);
-    backdrop-filter: blur(4px);
-    z-index: 200;
-    display: flex; align-items: flex-end;
-    justify-content: center;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.3s;
-  }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(100,50,120,0.3); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
   .modal-overlay.show { opacity: 1; pointer-events: all; }
-  .modal {
-    background: white; width: 100%; max-width: 500px;
-    border-radius: 28px 28px 0 0;
-    padding: 24px;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-    max-height: 80vh; overflow-y: auto;
-  }
+  .modal { background: white; width: 100%; max-width: 500px; border-radius: 28px 28px 0 0; padding: 24px; transform: translateY(100%); transition: transform 0.3s ease; max-height: 80vh; overflow-y: auto; }
   .modal-overlay.show .modal { transform: translateY(0); }
-  .modal-title {
-    font-size: 18px; font-weight: 800;
-    margin-bottom: 20px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .modal-handle {
-    width: 40px; height: 4px; border-radius: 2px;
-    background: #E8E0E0; margin: 0 auto 20px;
-  }
-  .input {
-    width: 100%; padding: 14px 16px;
-    border: 2px solid #EDE4FF; border-radius: 14px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 15px; color: var(--text);
-    background: #FDFAFF; outline: none;
-    margin-bottom: 12px;
-    transition: border-color 0.2s;
-  }
+  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .modal-handle { width: 40px; height: 4px; border-radius: 2px; background: #E8E0E0; margin: 0 auto 20px; }
+  .input { width: 100%; padding: 14px 16px; border: 2px solid #EDE4FF; border-radius: 14px; font-family: 'Nunito', sans-serif; font-size: 15px; color: var(--text); background: #FDFAFF; outline: none; margin-bottom: 12px; transition: border-color 0.2s; }
   .input:focus { border-color: var(--lavender-deep); }
-  .select {
-    width: 100%; padding: 14px 16px;
-    border: 2px solid #EDE4FF; border-radius: 14px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 15px; color: var(--text);
-    background: #FDFAFF; outline: none;
-    margin-bottom: 12px; appearance: none;
-    cursor: pointer;
-  }
-
-  .cat-pills {
-    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
-  }
-  .cat-pill {
-    padding: 8px 16px; border-radius: 20px;
-    border: 2px solid #EDE4FF; background: white;
-    font-family: 'Nunito', sans-serif;
-    font-size: 13px; font-weight: 700;
-    color: var(--text-light); cursor: pointer;
-    transition: all 0.2s;
-  }
-  .cat-pill.active {
-    background: linear-gradient(135deg, var(--pink), var(--lavender));
-    color: white; border-color: transparent;
-  }
 </style>
 </head>
 <body>
 
-<!-- Floating decorations -->
 <div class="deco" style="top:15%;right:5%;animation-delay:0s">🌸</div>
 <div class="deco" style="top:40%;left:3%;animation-delay:2s">⭐</div>
 <div class="deco" style="top:70%;right:8%;animation-delay:4s">🌷</div>
 
-<!-- Header -->
 <div class="header">
   <div class="header-top">
     <div class="header-title">🎀 EE 小助理</div>
     <div class="header-avatar" id="avatarEl">🐰</div>
   </div>
   <div class="nav">
-    <button class="nav-btn active" onclick="switchTab('bookmarks')">📌 收藏</button>
-    <button class="nav-btn" onclick="switchTab('todos')">📋 待辦</button>
-    <button class="nav-btn" onclick="switchTab('calendar')">📅 月曆</button>
-    <button class="nav-btn" onclick="switchTab('files')">📁 檔案</button>
+    <button class="nav-btn active" onclick="switchTab('bookmarks', this)">📌 收藏</button>
+    <button class="nav-btn" onclick="switchTab('todos', this)">📋 待辦</button>
+    <button class="nav-btn" onclick="switchTab('calendar', this)">📅 月曆</button>
+    <button class="nav-btn" onclick="switchTab('files', this)">📁 檔案</button>
   </div>
 </div>
 
-<!-- Main -->
 <div class="main">
 
   <!-- 收藏 -->
   <div class="section active" id="section-bookmarks">
     <div class="section-title"><span>📌</span> 我的收藏</div>
     <div class="filter-tabs">
-      <button class="filter-tab active" onclick="filterBookmarks('全部')">全部</button>
-      <button class="filter-tab" onclick="filterBookmarks('個人')">👤 個人</button>
-      <button class="filter-tab" onclick="filterBookmarks('工作')">💼 工作</button>
-      <button class="filter-tab" onclick="filterBookmarks('家庭')">🏠 家庭</button>
-      <button class="filter-tab" onclick="filterBookmarks('未分類')">📋 未分類</button>
+      <button class="filter-tab active" onclick="filterBookmarks('全部', this)">全部</button>
+      <button class="filter-tab" onclick="filterBookmarks('個人', this)">👤 個人</button>
+      <button class="filter-tab" onclick="filterBookmarks('工作', this)">💼 工作</button>
+      <button class="filter-tab" onclick="filterBookmarks('家庭', this)">🏠 家庭</button>
+      <button class="filter-tab" onclick="filterBookmarks('未分類', this)">📋 未分類</button>
     </div>
-    <div id="bookmarks-list">
-      <div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-    </div>
+    <div id="bookmarks-list"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
   </div>
 
   <!-- 待辦 -->
@@ -481,18 +183,16 @@
       <button class="btn btn-primary" style="flex:none;padding:10px 16px" onclick="openAddTodo()">＋ 新增</button>
     </div>
     <div class="filter-tabs">
-      <button class="filter-tab active" onclick="filterTodos('pending')">⏳ 進行中</button>
-      <button class="filter-tab" onclick="filterTodos('done')">✅ 已完成</button>
+      <button class="filter-tab active" onclick="filterTodos('pending', this)">⏳ 進行中</button>
+      <button class="filter-tab" onclick="filterTodos('done', this)">✅ 已完成</button>
     </div>
-    <div id="todos-list">
-      <div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-    </div>
+    <div id="todos-list"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
   </div>
 
   <!-- 月曆 -->
   <div class="section" id="section-calendar">
     <div class="section-title"><span>📅</span> 月曆</div>
-    <div class="card" style="padding:16px">
+    <div class="card"><div class="card-body">
       <div class="cal-nav">
         <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
         <div class="cal-month" id="cal-month-label"></div>
@@ -500,19 +200,15 @@
       </div>
       <div class="calendar-grid" id="cal-headers"></div>
       <div class="calendar-grid" id="cal-days"></div>
-    </div>
+    </div></div>
     <div class="section-title" style="font-size:16px;margin-top:4px"><span>🗓️</span> <span id="cal-selected-label">本月待辦</span></div>
-    <div id="calendar-events">
-      <div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-    </div>
+    <div id="calendar-events"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
   </div>
 
   <!-- 檔案 -->
   <div class="section" id="section-files">
     <div class="section-title"><span>📁</span> 備份檔案</div>
-    <div id="files-list">
-      <div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-    </div>
+    <div id="files-list"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
   </div>
 
 </div>
@@ -532,7 +228,6 @@
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -550,53 +245,59 @@ let calMonth = new Date().getMonth();
 let calSelectedDate = null;
 let calEvents = [];
 
-// Init LIFF
-async function initLiff() {
+// OG image cache
+const ogCache = {};
+
+async function fetchOgImage(url) {
+  if (ogCache[url] !== undefined) return ogCache[url];
   try {
-    await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return;
-    }
-    const profile = await liff.getProfile();
-    userId = profile.userId;
-
-    const avatar = document.getElementById('avatarEl');
-    if (profile.pictureUrl) {
-      avatar.innerHTML = '<img src="' + profile.pictureUrl + '" alt="avatar">';
-    }
-
-    loadBookmarks();
-    loadTodos();
-    loadFiles();
-    renderCalendar();
-  } catch (e) {
-    console.error('LIFF init error:', e);
-    // Use demo mode if LIFF fails
-    userId = 'demo';
-    loadBookmarks();
-    loadTodos();
-    loadFiles();
-    renderCalendar();
+    // Use allorigins proxy to fetch OG image
+    const proxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    const html = data.contents || '';
+    const match = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+                || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+    const imgUrl = match ? match[1] : null;
+    ogCache[url] = imgUrl;
+    return imgUrl;
+  } catch(e) {
+    ogCache[url] = null;
+    return null;
   }
 }
 
-// Tab switching
-function switchTab(tab) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('section-' + tab).classList.add('active');
-  event.target.classList.add('active');
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+    userId = profile.userId;
+    const avatar = document.getElementById('avatarEl');
+    if (profile.pictureUrl) avatar.innerHTML = '<img src="' + profile.pictureUrl + '" alt="avatar">';
+  } catch(e) {
+    console.error('LIFF init error:', e);
+    userId = 'demo';
+  }
+  loadBookmarks();
+  loadTodos();
+  loadFiles();
+  renderCalendar();
+}
 
+function switchTab(tab, btn) {
+  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('section-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
   if (tab === 'calendar') renderCalendar();
 }
 
-// Toast
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
 }
 
 // ============================================================
@@ -609,16 +310,27 @@ async function loadBookmarks() {
     const data = await res.json();
     allBookmarks = data.bookmarks || [];
     renderBookmarks();
-  } catch (e) {
+    // Load OG images in background
+    loadOgImages();
+  } catch(e) {
     document.getElementById('bookmarks-list').innerHTML = renderEmpty('📭', '載入失敗', '請稍後再試');
   }
 }
 
-function filterBookmarks(cat) {
+async function loadOgImages() {
+  for (let i = 0; i < Math.min(allBookmarks.length, 10); i++) {
+    const b = allBookmarks[i];
+    if (b.url) {
+      await fetchOgImage(b.url);
+    }
+  }
+  renderBookmarks();
+}
+
+function filterBookmarks(cat, btn) {
   currentBookmarkFilter = cat;
-  document.querySelectorAll('#section-bookmarks .filter-tab').forEach((t, i) => {
-    t.classList.toggle('active', t.textContent.includes(cat) || (cat === '全部' && i === 0));
-  });
+  document.querySelectorAll('#section-bookmarks .filter-tab').forEach(function(t) { t.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
   renderBookmarks();
 }
 
@@ -626,30 +338,40 @@ function renderBookmarks() {
   const list = document.getElementById('bookmarks-list');
   let items = allBookmarks;
   if (currentBookmarkFilter !== '全部') {
-    items = items.filter(b => b.category === currentBookmarkFilter);
+    items = items.filter(function(b) { return b.category === currentBookmarkFilter; });
   }
-
   if (!items.length) {
     list.innerHTML = renderEmpty('🔖', '這裡還沒有收藏', '貼上連結就會自動收藏喔！');
     return;
   }
 
-  list.innerHTML = items.slice(0, 30).map(b => {
+  list.innerHTML = items.slice(0, 30).map(function(b) {
     const catColor = {'個人':'badge-pink','工作':'badge-mint','家庭':'badge-lavender','未分類':'badge-gray'}[b.category] || 'badge-gray';
     const platformColor = getPlatformColor(b.platform);
-    return '<div class="card fade-in">' +
-      '<div class="card-header">' +
-        '<div class="card-title">' + escHtml(b.note || b.url) + '</div>' +
-        '<span class="badge ' + catColor + '">' + (b.category || '未分類') + '</span>' +
-      '</div>' +
-      '<div class="card-meta">' +
-        '<span style="background:' + platformColor + '11;color:' + platformColor + ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">' + escHtml(b.platform || 'Link') + '</span>' +
-        '<span>📅 ' + (b.createdAt || '').substring(0, 10) + '</span>' +
-        (b.tags ? '<span>🏷️ ' + escHtml(b.tags) + '</span>' : '') +
-      '</div>' +
-      '<div class="card-actions">' +
-        '<button class="btn btn-link" onclick="openUrl(\'' + escHtml(b.url) + '\')">🔗 開啟連結</button>' +
-        '<button class="btn btn-secondary" onclick="copyUrl(\'' + escHtml(b.url) + '\')">複製</button>' +
+    const ogImg = ogCache[b.url];
+    const imgHtml = ogImg
+      ? '<img class="bookmark-preview" src="' + escAttr(ogImg) + '" onerror="this.style.display=\'none\'" loading="lazy">'
+      : '<div class="bookmark-preview-placeholder">' + getPlatformEmoji(b.platform) + '</div>';
+
+    return '<div class="card bookmark-card fade-in">' +
+      imgHtml +
+      '<div class="bookmark-inner">' +
+        '<div class="card-accent"></div>' +
+        '<div class="card-body" style="flex:1">' +
+          '<div class="card-header">' +
+            '<div class="card-title">' + escHtml(b.note || b.url) + '</div>' +
+            '<span class="badge ' + catColor + '">' + escHtml(b.category || '未分類') + '</span>' +
+          '</div>' +
+          '<div class="card-meta">' +
+            '<span style="background:' + platformColor + '22;color:' + platformColor + ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">' + escHtml(b.platform || 'Link') + '</span>' +
+            '<span>📅 ' + String(b.createdAt || '').substring(0,10) + '</span>' +
+            (b.tags ? '<span>🏷️ ' + escHtml(b.tags) + '</span>' : '') +
+          '</div>' +
+          '<div class="card-actions">' +
+            '<button class="btn btn-link" onclick="openUrl(\'' + escAttr(b.url) + '\')">🔗 開啟連結</button>' +
+            '<button class="btn btn-secondary" onclick="copyUrl(\'' + escAttr(b.url) + '\')">複製</button>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -665,174 +387,117 @@ async function loadTodos() {
     const data = await res.json();
     allTodos = data.todos || [];
     renderTodos();
-    // Also update calendar events
-    calEvents = allTodos.filter(t => t.remindAt);
+    calEvents = allTodos.filter(function(t) { return t.remindAt; });
     renderCalendarEvents();
-  } catch (e) {
+  } catch(e) {
     document.getElementById('todos-list').innerHTML = renderEmpty('📭', '載入失敗', '請稍後再試');
   }
 }
 
-function filterTodos(status) {
+function filterTodos(status, btn) {
   currentTodoFilter = status;
-  document.querySelectorAll('#section-todos .filter-tab').forEach(t => {
-    t.classList.toggle('active',
-      (status === 'pending' && t.textContent.includes('進行')) ||
-      (status === 'done' && t.textContent.includes('已完成'))
-    );
-  });
+  document.querySelectorAll('#section-todos .filter-tab').forEach(function(t) { t.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
   renderTodos();
 }
 
 function renderTodos() {
   const list = document.getElementById('todos-list');
-  const items = allTodos.filter(t => t.status === currentTodoFilter);
-
+  const items = allTodos.filter(function(t) { return t.status === currentTodoFilter; });
   if (!items.length) {
     const msg = currentTodoFilter === 'pending' ? '目前沒有待辦事項' : '還沒有完成的待辦';
     list.innerHTML = renderEmpty('✨', msg, currentTodoFilter === 'pending' ? '點右上角新增第一筆吧！' : '');
     return;
   }
-
-  list.innerHTML = items.slice(0, 30).map(t => {
+  list.innerHTML = items.slice(0, 30).map(function(t) {
     const isDone = t.status === 'done';
-    return '<div class="card fade-in">' +
+    return '<div class="card fade-in"><div class="card-body">' +
       '<div class="todo-item">' +
-        '<div class="todo-check ' + (isDone ? 'done' : '') + '" onclick="toggleTodo(\'' + t.todoId + '\', \'' + t.status + '\')">' +
-          (isDone ? '✓' : '') +
-        '</div>' +
+        '<div class="todo-check ' + (isDone ? 'done' : '') + '" onclick="toggleTodo(\'' + escAttr(t.todoId) + '\', \'' + t.status + '\')">' + (isDone ? '✓' : '') + '</div>' +
         '<div class="todo-content">' +
           '<div class="todo-text" style="' + (isDone ? 'text-decoration:line-through;opacity:0.5' : '') + '">' + escHtml(t.content) + '</div>' +
-          (t.remindAt ? '<div class="todo-remind">⏰ ' + t.remindAt + '</div>' : '') +
+          (t.remindAt ? '<div class="todo-remind">⏰ ' + escHtml(t.remindAt) + '</div>' : '') +
         '</div>' +
       '</div>' +
       (!isDone ? '<div class="card-actions" style="margin-top:12px">' +
-        '<button class="btn btn-success" onclick="completeTodo(\'' + t.todoId + '\')">✅ 完成</button>' +
-        '<button class="btn btn-danger" onclick="deleteTodo(\'' + t.todoId + '\')">🗑️ 刪除</button>' +
+        '<button class="btn btn-success" onclick="completeTodo(\'' + escAttr(t.todoId) + '\')">✅ 完成</button>' +
+        '<button class="btn btn-danger" onclick="deleteTodo(\'' + escAttr(t.todoId) + '\')">🗑️ 刪除</button>' +
       '</div>' : '') +
-    '</div>';
+    '</div></div>';
   }).join('');
 }
 
-function openAddTodo() {
-  document.getElementById('addTodoModal').classList.add('show');
-  document.getElementById('todoContent').focus();
-}
-
+function openAddTodo() { document.getElementById('addTodoModal').classList.add('show'); }
 function closeAddTodo() {
   document.getElementById('addTodoModal').classList.remove('show');
   document.getElementById('todoContent').value = '';
   document.getElementById('todoRemind').value = '';
 }
-
-function closeModal(e) {
-  if (e.target === document.getElementById('addTodoModal')) closeAddTodo();
-}
+function closeModal(e) { if (e.target === document.getElementById('addTodoModal')) closeAddTodo(); }
 
 async function submitTodo() {
   const content = document.getElementById('todoContent').value.trim();
   if (!content) { showToast('請輸入待辦內容 🌸'); return; }
-
   const remind = document.getElementById('todoRemind').value;
-
   try {
     const res = await fetch(API_BASE + '/todos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, content, remindAt: remind })
+      body: JSON.stringify({ userId: userId, content: content, remindAt: remind })
     });
     const data = await res.json();
-    if (data.success) {
-      showToast('✨ 已新增待辦！');
-      closeAddTodo();
-      loadTodos();
-    } else {
-      showToast('新增失敗，請稍後再試');
-    }
-  } catch (e) {
-    showToast('新增失敗，請稍後再試');
-  }
+    if (data.success) { showToast('✨ 已新增待辦！'); closeAddTodo(); loadTodos(); }
+    else showToast('新增失敗，請稍後再試');
+  } catch(e) { showToast('新增失敗，請稍後再試'); }
 }
 
 async function completeTodo(todoId) {
   try {
-    const res = await fetch(API_BASE + '/todos/' + todoId, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'done' })
-    });
-    showToast('✅ 已完成！');
-    loadTodos();
-  } catch (e) {
-    showToast('操作失敗');
-  }
+    await fetch(API_BASE + '/todos/' + todoId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'done' }) });
+    showToast('✅ 已完成！'); loadTodos();
+  } catch(e) { showToast('操作失敗'); }
 }
 
 async function deleteTodo(todoId) {
   try {
-    const res = await fetch(API_BASE + '/todos/' + todoId, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'deleted' })
-    });
-    showToast('🗑️ 已刪除！');
-    loadTodos();
-  } catch (e) {
-    showToast('操作失敗');
-  }
+    await fetch(API_BASE + '/todos/' + todoId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'deleted' }) });
+    showToast('🗑️ 已刪除！'); loadTodos();
+  } catch(e) { showToast('操作失敗'); }
 }
 
-async function toggleTodo(todoId, currentStatus) {
-  if (currentStatus === 'done') return;
-  await completeTodo(todoId);
-}
+function toggleTodo(todoId, status) { if (status !== 'done') completeTodo(todoId); }
 
 // ============================================================
 // Calendar
 // ============================================================
 
 function renderCalendar() {
-  const days = ['日', '一', '二', '三', '四', '五', '六'];
-  const headersEl = document.getElementById('cal-headers');
-  const daysEl = document.getElementById('cal-days');
-  const monthEl = document.getElementById('cal-month-label');
-
-  monthEl.textContent = calYear + ' 年 ' + (calMonth + 1) + ' 月';
-
-  headersEl.innerHTML = days.map(d =>
-    '<div class="cal-header">' + d + '</div>'
-  ).join('');
+  const days = ['日','一','二','三','四','五','六'];
+  document.getElementById('cal-month-label').textContent = calYear + ' 年 ' + (calMonth + 1) + ' 月';
+  document.getElementById('cal-headers').innerHTML = days.map(function(d) { return '<div class="cal-header">' + d + '</div>'; }).join('');
 
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const daysInPrev = new Date(calYear, calMonth, 0).getDate();
   const today = new Date();
-
   let html = '';
 
-  for (let i = firstDay - 1; i >= 0; i--) {
-    html += '<div class="cal-day other-month">' + (daysInPrev - i) + '</div>';
-  }
-
+  for (let i = firstDay - 1; i >= 0; i--) html += '<div class="cal-day other-month">' + (daysInPrev - i) + '</div>';
   for (let d = 1; d <= daysInMonth; d++) {
-    const isToday = today.getFullYear() === calYear && today.getMonth() === calMonth && today.getDate() === d;
-    const dateStr = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    const hasEvent = calEvents.some(e => (e.remindAt || '').startsWith(dateStr));
-    html += '<div class="cal-day' + (isToday ? ' today' : '') + (hasEvent ? ' has-event' : '') + '" onclick="selectCalDay(\'' + dateStr + '\', ' + d + ')">' + d + '</div>';
+    const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
+    const dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const hasEvent = calEvents.some(function(e) { return String(e.remindAt||'').startsWith(dateStr); });
+    html += '<div class="cal-day' + (isToday?' today':'') + (hasEvent?' has-event':'') + '" onclick="selectCalDay(\'' + dateStr + '\',' + d + ')">' + d + '</div>';
   }
-
-  const remaining = 42 - firstDay - daysInMonth;
-  for (let d = 1; d <= remaining; d++) {
-    html += '<div class="cal-day other-month">' + d + '</div>';
-  }
-
-  daysEl.innerHTML = html;
+  const rem = 42 - firstDay - daysInMonth;
+  for (let d = 1; d <= rem; d++) html += '<div class="cal-day other-month">' + d + '</div>';
+  document.getElementById('cal-days').innerHTML = html;
   renderCalendarEvents();
 }
 
 function selectCalDay(dateStr, day) {
   calSelectedDate = dateStr;
-  document.getElementById('cal-selected-label').textContent = (calMonth + 1) + '/' + day + ' 的待辦';
+  document.getElementById('cal-selected-label').textContent = (calMonth+1) + '/' + day + ' 的待辦';
   renderCalendarEvents(dateStr);
 }
 
@@ -840,25 +505,18 @@ function renderCalendarEvents(dateFilter) {
   const el = document.getElementById('calendar-events');
   let events = calEvents;
   if (dateFilter) {
-    events = events.filter(e => (e.remindAt || '').startsWith(dateFilter));
+    events = events.filter(function(e) { return String(e.remindAt||'').startsWith(dateFilter); });
   } else {
-    const prefix = calYear + '-' + String(calMonth + 1).padStart(2, '0');
-    events = events.filter(e => (e.remindAt || '').startsWith(prefix));
+    const prefix = calYear + '-' + String(calMonth+1).padStart(2,'0');
+    events = events.filter(function(e) { return String(e.remindAt||'').startsWith(prefix); });
   }
-
-  if (!events.length) {
-    el.innerHTML = renderEmpty('📅', dateFilter ? '這天沒有待辦' : '本月沒有待辦', '');
-    return;
-  }
-
-  el.innerHTML = events.map(t =>
-    '<div class="card fade-in">' +
+  if (!events.length) { el.innerHTML = renderEmpty('📅', dateFilter ? '這天沒有待辦' : '本月沒有待辦', ''); return; }
+  el.innerHTML = events.map(function(t) {
+    return '<div class="card fade-in"><div class="card-body">' +
       '<div class="card-title">' + escHtml(t.content) + '</div>' +
-      '<div class="card-meta" style="margin-top:8px">' +
-        '<span class="badge badge-pink">⏰ ' + escHtml(t.remindAt || '') + '</span>' +
-      '</div>' +
-    '</div>'
-  ).join('');
+      '<div class="card-meta" style="margin-top:8px"><span class="badge badge-pink">⏰ ' + escHtml(t.remindAt||'') + '</span></div>' +
+    '</div></div>';
+  }).join('');
 }
 
 function changeMonth(delta) {
@@ -880,34 +538,47 @@ async function loadFiles() {
     const data = await res.json();
     allFiles = data.files || [];
     renderFiles();
-  } catch (e) {
+  } catch(e) {
     document.getElementById('files-list').innerHTML = renderEmpty('📭', '載入失敗', '請稍後再試');
   }
 }
 
+function getDriveThumbUrl(driveFileId) {
+  if (!driveFileId) return null;
+  return 'https://drive.google.com/thumbnail?id=' + driveFileId + '&sz=w400';
+}
+
 function renderFiles() {
   const list = document.getElementById('files-list');
-  if (!allFiles.length) {
-    list.innerHTML = renderEmpty('📂', '還沒有備份檔案', '傳送圖片或檔案就會自動備份！');
-    return;
-  }
+  if (!allFiles.length) { list.innerHTML = renderEmpty('📂', '還沒有備份檔案', '傳送圖片或檔案就會自動備份！'); return; }
 
-  const icons = { image: '🖼️', pdf: '📄', excel: '📊', word: '📝', video: '🎬', audio: '🎵', other: '📁' };
-  const colors = { image: '#FFE8ED', pdf: '#FFE8D6', excel: '#E0F7EF', word: '#E8EEFF', video: '#EDE4FF', audio: '#FFF5D6', other: '#F0EDED' };
+  const icons = { image:'🖼️', pdf:'📄', excel:'📊', word:'📝', video:'🎬', audio:'🎵', other:'📁' };
+  const colors = { image:'#FFE8ED', pdf:'#FFE8D6', excel:'#E0F7EF', word:'#E8EEFF', video:'#EDE4FF', audio:'#FFF5D6', other:'#F0EDED' };
 
-  list.innerHTML = allFiles.slice(0, 30).map(f => {
+  list.innerHTML = allFiles.slice(0, 30).map(function(f) {
     const icon = icons[f.fileType] || '📁';
     const bg = colors[f.fileType] || '#F0EDED';
-    return '<div class="card fade-in">' +
-      '<div style="display:flex;align-items:center;gap:14px">' +
-        '<div class="file-icon" style="background:' + bg + '">' + icon + '</div>' +
-        '<div class="file-info">' +
-          '<div class="file-name">' + escHtml(f.fileName || '') + '</div>' +
-          '<div class="file-meta">' + (f.fileType || '').toUpperCase() + ' · ' + formatSize(f.size) + ' · ' + (f.createdAt || '').substring(0, 10) + '</div>' +
+    const isImage = f.fileType === 'image' || f.fileType === 'video';
+    const thumbUrl = isImage ? getDriveThumbUrl(f.driveFileId) : null;
+
+    const thumbHtml = thumbUrl
+      ? '<img class="file-thumb" src="' + escAttr(thumbUrl) + '" loading="lazy" onerror="this.parentNode.querySelector(\'.file-thumb-placeholder\').style.display=\'flex\';this.style.display=\'none\'">' +
+        '<div class="file-thumb-placeholder" style="display:none;background:' + bg + '">' + icon + '</div>'
+      : '<div class="file-thumb-placeholder" style="background:' + bg + '">' + icon + '</div>';
+
+    return '<div class="card file-card fade-in">' +
+      thumbHtml +
+      '<div class="card-body">' +
+        '<div class="file-inner">' +
+          '<div class="file-icon" style="background:' + bg + '">' + icon + '</div>' +
+          '<div class="file-info">' +
+            '<div class="file-name">' + escHtml(f.fileName||'') + '</div>' +
+            '<div class="file-meta">' + String(f.fileType||'').toUpperCase() + ' · ' + formatSize(f.size) + ' · ' + String(f.createdAt||'').substring(0,10) + '</div>' +
+          '</div>' +
         '</div>' +
-      '</div>' +
-      '<div class="card-actions" style="margin-top:12px">' +
-        '<button class="btn btn-link" onclick="openUrl(\'' + escHtml(f.driveUrl) + '\')">☁️ Google Drive</button>' +
+        '<div class="card-actions" style="margin-top:12px">' +
+          '<button class="btn btn-link" onclick="openUrl(\'' + escAttr(f.driveUrl) + '\')">☁️ Google Drive</button>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -918,42 +589,45 @@ function renderFiles() {
 // ============================================================
 
 function renderEmpty(icon, title, sub) {
-  return '<div class="empty">' +
-    '<div class="empty-icon">' + icon + '</div>' +
-    '<div class="empty-text">' + title + '</div>' +
-    (sub ? '<div class="empty-sub">' + sub + '</div>' : '') +
-  '</div>';
+  return '<div class="empty"><div class="empty-icon">' + icon + '</div><div class="empty-text">' + title + '</div>' + (sub ? '<div class="empty-sub">' + sub + '</div>' : '') + '</div>';
 }
 
 function escHtml(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function escAttr(str) {
+  return String(str||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
 }
 
 function openUrl(url) {
-  if (liff.isInClient()) {
-    liff.openWindow({ url, external: true });
-  } else {
-    window.open(url, '_blank');
-  }
+  try {
+    if (liff.isInClient()) liff.openWindow({ url: url, external: true });
+    else window.open(url, '_blank');
+  } catch(e) { window.open(url, '_blank'); }
 }
 
 function copyUrl(url) {
-  navigator.clipboard.writeText(url).then(() => showToast('已複製連結 🎀'));
+  navigator.clipboard.writeText(url).then(function() { showToast('已複製連結 🎀'); });
 }
 
 function getPlatformColor(platform) {
-  const colors = { Threads: '#000000', Facebook: '#1877F2', YouTube: '#FF0000', Instagram: '#E1306C', X: '#000000', LinkedIn: '#0077B5', GitHub: '#333333', Notion: '#000000', Medium: '#000000' };
+  var colors = { Threads:'#000000', Facebook:'#1877F2', YouTube:'#FF0000', Instagram:'#E1306C', X:'#000000', LinkedIn:'#0077B5', GitHub:'#333333', Notion:'#000000', Medium:'#000000' };
   return colors[platform] || '#888888';
+}
+
+function getPlatformEmoji(platform) {
+  var emojis = { Threads:'🧵', Facebook:'📘', YouTube:'📺', Instagram:'📸', X:'🐦', LinkedIn:'💼', GitHub:'🐱', Notion:'📝', Medium:'📖' };
+  return emojis[platform] || '🔗';
 }
 
 function formatSize(bytes) {
   if (!bytes) return '';
   if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
 }
 
-// Start
 initLiff();
 </script>
 </body>
