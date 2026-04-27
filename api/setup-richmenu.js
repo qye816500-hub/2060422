@@ -1,22 +1,16 @@
 // api/setup-richmenu.js
-// 打開這個網址一次就會自動設定 Rich Menu
-// https://2060422.vercel.app/api/setup-richmenu
-
 const https = require("https");
-const fs = require("fs");
-const path = require("path");
 
 const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-const LIFF_URL = "https://liff.line.me/2009891497-Bd5P0goB";
+const LIFF_BASE = "https://liff.line.me/2009891497-Bd5P0goB";
 
 function lineRequest(method, apiPath, data, contentType) {
   return new Promise(function(resolve, reject) {
     const isBuffer = Buffer.isBuffer(data);
     const body = isBuffer ? data : (data ? JSON.stringify(data) : null);
-    const headers = {
-      Authorization: "Bearer " + LINE_TOKEN,
-      "Content-Type": contentType || "application/json",
-    };
+    const headers = { Authorization: "Bearer " + LINE_TOKEN };
+    if (contentType) headers["Content-Type"] = contentType;
+    else if (body && !isBuffer) headers["Content-Type"] = "application/json";
     if (body) headers["Content-Length"] = body.length;
 
     const req = https.request({
@@ -40,9 +34,7 @@ function lineRequest(method, apiPath, data, contentType) {
 }
 
 module.exports = async function(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "GET only" });
-  }
+  if (req.method !== "GET") return res.status(405).json({ error: "GET only" });
 
   const log = [];
 
@@ -62,7 +54,7 @@ module.exports = async function(req, res) {
     const richMenuBody = {
       size: { width: 2500, height: 843 },
       selected: true,
-      name: "EE\u5C0F\u52A9\u7406\u9078\u55AE",
+      name: "EE\u5C0F\u52A9\u7406",
       chatBarText: "\u9078\u55AE",
       areas: [
         {
@@ -75,23 +67,18 @@ module.exports = async function(req, res) {
         },
         {
           bounds: { x: 1250, y: 0, width: 625, height: 843 },
-          action: {
-            type: "uri",
-            uri: LIFF_URL + "?tab=calendar"
-          }
+          action: { type: "uri", uri: LIFF_BASE }
         },
         {
           bounds: { x: 1875, y: 0, width: 625, height: 843 },
-          action: {
-            type: "uri",
-            uri: LIFF_URL
-          }
+          action: { type: "uri", uri: LIFF_BASE }
         }
       ]
     };
 
     const createRes = await lineRequest("POST", "/v2/bot/richmenu", richMenuBody);
-    log.push("Created rich menu: " + JSON.stringify(createRes.body));
+    log.push("Create result status: " + createRes.status);
+    log.push("Create result: " + JSON.stringify(createRes.body));
 
     if (!createRes.body || !createRes.body.richMenuId) {
       return res.status(500).json({ error: "Failed to create rich menu", log: log, detail: createRes.body });
@@ -99,9 +86,8 @@ module.exports = async function(req, res) {
 
     const richMenuId = createRes.body.richMenuId;
 
-    // Step 3: Upload image from GitHub raw
-    log.push("Step 3: Uploading image...");
-
+    // Step 3: Upload image
+    log.push("Step 3: Downloading image from GitHub...");
     const imgBuffer = await new Promise(function(resolve, reject) {
       https.get("https://raw.githubusercontent.com/qye816500-hub/2060422/main/richmenu.png", function(imgRes) {
         const chunks = [];
@@ -110,21 +96,15 @@ module.exports = async function(req, res) {
         imgRes.on("error", reject);
       }).on("error", reject);
     });
+    log.push("Image size: " + imgBuffer.length + " bytes");
 
-    log.push("Image downloaded, size: " + imgBuffer.length + " bytes");
-
-    const uploadRes = await lineRequest(
-      "POST",
-      "/v2/bot/richmenu/" + richMenuId + "/content",
-      imgBuffer,
-      "image/png"
-    );
-    log.push("Upload result: " + JSON.stringify(uploadRes.body) + " status: " + uploadRes.status);
+    const uploadRes = await lineRequest("POST", "/v2/bot/richmenu/" + richMenuId + "/content", imgBuffer, "image/png");
+    log.push("Upload status: " + uploadRes.status);
 
     // Step 4: Set as default
     log.push("Step 4: Setting as default...");
     const defaultRes = await lineRequest("POST", "/v2/bot/richmenu/default/" + richMenuId);
-    log.push("Set default result: " + JSON.stringify(defaultRes.body));
+    log.push("Default status: " + defaultRes.status);
 
     return res.status(200).json({
       success: true,
