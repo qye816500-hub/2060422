@@ -2,7 +2,7 @@
 const https = require("https");
 
 const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-const LIFF_BASE = "https://liff.line.me/2009891497-Bd5P0goB";
+const LIFF_URL = "https://2060422.vercel.app/liff";
 
 function lineRequest(method, apiPath, data, contentType) {
   return new Promise(function(resolve, reject) {
@@ -39,8 +39,8 @@ module.exports = async function(req, res) {
   const log = [];
 
   try {
-    // Step 1: Delete existing rich menus
-    log.push("Step 1: Deleting existing rich menus...");
+    // Step 1: Delete existing
+    log.push("Step 1: Deleting...");
     const listRes = await lineRequest("GET", "/v2/bot/richmenu/list");
     if (listRes.body && listRes.body.richmenus) {
       for (const rm of listRes.body.richmenus) {
@@ -49,9 +49,9 @@ module.exports = async function(req, res) {
       }
     }
 
-    // Step 2: Create rich menu
-    log.push("Step 2: Creating rich menu...");
-    const richMenuBody = {
+    // Step 2: Create
+    log.push("Step 2: Creating...");
+    const body = {
       size: { width: 2500, height: 843 },
       selected: true,
       name: "EE\u5C0F\u52A9\u7406",
@@ -67,49 +67,48 @@ module.exports = async function(req, res) {
         },
         {
           bounds: { x: 1250, y: 0, width: 625, height: 843 },
-          action: { type: "uri", uri: LIFF_BASE }
+          action: { type: "uri", uri: LIFF_URL }
         },
         {
           bounds: { x: 1875, y: 0, width: 625, height: 843 },
-          action: { type: "uri", uri: LIFF_BASE }
+          action: { type: "uri", uri: LIFF_URL }
         }
       ]
     };
 
-    const createRes = await lineRequest("POST", "/v2/bot/richmenu", richMenuBody);
-    log.push("Create result status: " + createRes.status);
-    log.push("Create result: " + JSON.stringify(createRes.body));
+    const createRes = await lineRequest("POST", "/v2/bot/richmenu", body);
+    log.push("Status: " + createRes.status + " Body: " + JSON.stringify(createRes.body));
 
     if (!createRes.body || !createRes.body.richMenuId) {
-      return res.status(500).json({ error: "Failed to create rich menu", log: log, detail: createRes.body });
+      return res.status(500).json({ error: "Failed to create", log: log, detail: createRes.body });
     }
 
     const richMenuId = createRes.body.richMenuId;
 
     // Step 3: Upload image
-    log.push("Step 3: Downloading image from GitHub...");
+    log.push("Step 3: Uploading image...");
     const imgBuffer = await new Promise(function(resolve, reject) {
-      https.get("https://raw.githubusercontent.com/qye816500-hub/2060422/main/richmenu.png", function(imgRes) {
+      https.get("https://raw.githubusercontent.com/qye816500-hub/2060422/main/richmenu.png", function(r) {
         const chunks = [];
-        imgRes.on("data", function(c) { chunks.push(c); });
-        imgRes.on("end", function() { resolve(Buffer.concat(chunks)); });
-        imgRes.on("error", reject);
+        r.on("data", function(c) { chunks.push(c); });
+        r.on("end", function() { resolve(Buffer.concat(chunks)); });
+        r.on("error", reject);
       }).on("error", reject);
     });
-    log.push("Image size: " + imgBuffer.length + " bytes");
+    log.push("Image: " + imgBuffer.length + " bytes");
 
     const uploadRes = await lineRequest("POST", "/v2/bot/richmenu/" + richMenuId + "/content", imgBuffer, "image/png");
-    log.push("Upload status: " + uploadRes.status);
+    log.push("Upload: " + uploadRes.status);
 
-    // Step 4: Set as default
-    log.push("Step 4: Setting as default...");
-    const defaultRes = await lineRequest("POST", "/v2/bot/richmenu/default/" + richMenuId);
-    log.push("Default status: " + defaultRes.status);
+    // Step 4: Set default
+    log.push("Step 4: Set default...");
+    const defRes = await lineRequest("POST", "/v2/bot/richmenu/default/" + richMenuId);
+    log.push("Default: " + defRes.status);
 
     return res.status(200).json({
       success: true,
       richMenuId: richMenuId,
-      message: "Rich Menu \u8A2D\u5B9A\u5B8C\u6210\uFF01\u53BB LINE \u6E2C\u8A66\u770B\u770B\u5427\uFF01",
+      message: "Rich Menu \u5B8C\u6210\uFF01\u53BB LINE \u770B\u770B\u5427\uFF01",
       log: log
     });
 
