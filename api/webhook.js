@@ -1,5 +1,5 @@
 // api/webhook.js
-// LINE Bot - v7.2.0
+// LINE Bot - v7.3.0
 // bot state + any URL bookmark + todo direct input + OAuth Drive
 
 const { google } = require("googleapis");
@@ -19,19 +19,20 @@ const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
 const REDIRECT_URI = "https://2060422.vercel.app/api/auth/callback";
 
 const SHEET = {
-  THREADS: "Threads\u6536\u85CF",
-  FILES: "\u6A94\u6848\u5099\u4EFD",
-  CALENDAR: "\u65E5\u66C6\u5F85\u8FA6",
-  TODOS: "\u5F85\u8FA6\u6E05\u55AE",
-  BOT_STATE: "\u6A5F\u5668\u4EBA\u72C0\u614B",
+  THREADS: "Threads收藏",
+  FILES: "檔案備份",
+  CALENDAR: "日曆待辦",
+  TODOS: "待辦清單",
+  BOT_STATE: "機器人狀態",
+  CATEGORIES: "收藏分類",
 };
 
-const CATEGORIES = ["\u672A\u5206\u985E", "\u500B\u4EBA", "\u5DE5\u4F5C", "\u5BB6\u5EAD"];
+const DEFAULT_CATEGORIES = ["未分類", "個人", "工作", "家庭"];
 const CATEGORY_COLORS = {
-  "\u672A\u5206\u985E": "#888888",
-  "\u500B\u4EBA": "#FF6B6B",
-  "\u5DE5\u4F5C": "#4ECDC4",
-  "\u5BB6\u5EAD": "#45B7D1",
+  "未分類": "#888888",
+  "個人": "#FF6B6B",
+  "工作": "#4ECDC4",
+  "家庭": "#45B7D1",
 };
 
 // ============================================================
@@ -58,6 +59,25 @@ function getOAuthDriveClient() {
   const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIRECT_URI);
   oauth2Client.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
   return google.drive({ version: "v3", auth: oauth2Client });
+}
+
+// ============================================================
+//  Dynamic Categories
+// ============================================================
+
+async function getUserCategories(sheets, userId) {
+  try {
+    const data = await getSheetData(sheets, SHEET.CATEGORIES);
+    const custom = data.slice(1)
+      .filter(function(r) { return String(r[0] || "") === userId; })
+      .map(function(r) { return String(r[1] || ""); })
+      .filter(Boolean);
+    const all = [...DEFAULT_CATEGORIES];
+    custom.forEach(function(c) { if (!all.includes(c)) all.push(c); });
+    return all;
+  } catch(e) {
+    return [...DEFAULT_CATEGORIES];
+  }
 }
 
 // ============================================================
@@ -102,7 +122,7 @@ async function clearBotState(sheets, userId) {
 
 module.exports = async function(req, res) {
   if (req.method === "GET") {
-    return res.status(200).json({ status: "ok", version: "7.2.0" });
+    return res.status(200).json({ status: "ok", version: "7.3.0" });
   }
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -168,6 +188,11 @@ async function handlePostback(replyToken, data, userId, clients) {
   const params = new URLSearchParams(data);
   const action = params.get("action");
 
+  if (action === "add_tag_prompt") {
+    await setBotState(sheets, userId, "awaiting_tag_input");
+    await replyText(replyToken, "請輸入要加的標籤（可多個，用空格分隔）：\n\n例如：旅遊 美食 推薦");
+    return;
+  }
   if (action === "set_category") {
     await handleSetCategory(replyToken, params.get("cat"), userId, sheets);
     return;
@@ -178,7 +203,7 @@ async function handlePostback(replyToken, data, userId, clients) {
   }
   if (action === "todo_new") {
     await setBotState(sheets, userId, "awaiting_todo_input");
-    await replyText(replyToken, "\u8ACB\u76F4\u63A5\u8F38\u5165\u5F85\u8FA6\u5167\u5BB9\uFF1A\n\n\u4F8B\u5982\uFF1A\u6574\u7406\u5831\u50F9\u55AE\n\u6216\uFF1A\u660E\u5929\u4E0B\u53483\u9EDE\u63D0\u9192\u6211\u56DE\u8986\u5BA2\u6236");
+    await replyText(replyToken, "請直接輸入待辦內容：\n\n例如：整理報價單\n或：明天下午3點提醒我回覆客戶");
     return;
   }
   if (action === "todo_view") {
@@ -211,6 +236,12 @@ async function handleTextMessage(replyToken, text, userId, clients) {
     return;
   }
 
+  if (state === "awaiting_tag_input") {
+    await clearBotState(sheets, userId);
+    await handleAddTag(replyToken, "加標籤 " + text, userId, sheets);
+    return;
+  }
+
   if (state === "awaiting_todo_complete") {
     const num = parseInt(text.trim(), 10);
     if (!isNaN(num)) {
@@ -218,7 +249,7 @@ async function handleTextMessage(replyToken, text, userId, clients) {
       await handleCompleteTodoByIndex(replyToken, num, userId, sheets);
       return;
     }
-    await replyText(replyToken, "\u8ACB\u8F38\u5165\u6578\u5B57\u5E8F\u865F\uFF0C\u4F8B\u5982\uFF1A1\n\n\u6216\u8F38\u5165\u300C\u53D6\u6D88\u300D\u96E2\u958B");
+    await replyText(replyToken, "請輸入數字序號，例如：1\n\n或輸入「取消」離開");
     return;
   }
 
@@ -229,61 +260,63 @@ async function handleTextMessage(replyToken, text, userId, clients) {
       await handleDeleteTodoByIndex(replyToken, num, userId, sheets);
       return;
     }
-    await replyText(replyToken, "\u8ACB\u8F38\u5165\u6578\u5B57\u5E8F\u865F\uFF0C\u4F8B\u5982\uFF1A1\n\n\u6216\u8F38\u5165\u300C\u53D6\u6D88\u300D\u96E2\u958B");
+    await replyText(replyToken, "請輸入數字序號，例如：1\n\n或輸入「取消」離開");
     return;
   }
 
-  if (text === "\u53D6\u6D88") {
+  if (text === "取消") {
     await clearBotState(sheets, userId);
-    await replyText(replyToken, "\u5DF2\u53D6\u6D88\u64CD\u4F5C\u3002");
+    await replyText(replyToken, "已取消操作。");
     return;
   }
 
-  if (text === "\u529F\u80FD\u8AAA\u660E" || text === "\u8AAA\u660E" || text === "help") {
+  if (text === "功能說明" || text === "說明" || text === "help") {
     await replyFlex(replyToken, buildMainMenuFlex());
     return;
   }
 
-  if (text === "\u5F85\u8FA6\u6E05\u55AE") {
+  if (text === "待辦清單") {
     await replyFlex(replyToken, buildTodoMenuFlex());
     return;
   }
-  if (text === "\u67E5\u770B\u5F85\u8FA6") {
+  if (text === "查看待辦") {
     await handleShowTodos(replyToken, userId, sheets);
     return;
   }
-  if (text === "\u65B0\u589E\u5F85\u8FA6") {
+  if (text === "新增待辦") {
     await setBotState(sheets, userId, "awaiting_todo_input");
-    await replyText(replyToken, "\u8ACB\u76F4\u63A5\u8F38\u5165\u5F85\u8FA6\u5167\u5BB9\uFF1A\n\n\u4F8B\u5982\uFF1A\u6574\u7406\u5831\u50F9\u55AE\n\u6216\uFF1A\u660E\u5929\u4E0B\u53483\u9EDE\u63D0\u9192\u6211\u56DE\u8986\u5BA2\u6236");
+    await replyText(replyToken, "請直接輸入待辦內容：\n\n例如：整理報價單\n或：明天下午3點提醒我回覆客戶");
     return;
   }
-  if (text.indexOf("\u65B0\u589E\u5F85\u8FA6 ") === 0) {
+  if (text.indexOf("新增待辦 ") === 0) {
     const content = text.slice(5).trim();
     await handleCreateTodo(replyToken, content, userId, sheets, calendar);
     return;
   }
-  if (text === "\u5B8C\u6210\u5F85\u8FA6") {
+  if (text === "完成待辦") {
     await handlePromptCompleteTodo(replyToken, userId, sheets);
     return;
   }
-  if (/^\u5B8C\u6210\u5F85\u8FA6\s+\d+$/.test(text)) {
-    const index = parseInt(text.replace(/^\u5B8C\u6210\u5F85\u8FA6\s+/, ""), 10);
+  if (/^完成待辦\s+\d+$/.test(text)) {
+    const index = parseInt(text.replace(/^完成待辦\s+/, ""), 10);
     await handleCompleteTodoByIndex(replyToken, index, userId, sheets);
     return;
   }
-  if (text === "\u522A\u9664\u5F85\u8FA6") {
+  if (text === "刪除待辦") {
     await handlePromptDeleteTodo(replyToken, userId, sheets);
     return;
   }
-  if (/^\u522A\u9664\u5F85\u8FA6\s+\d+$/.test(text)) {
-    const index = parseInt(text.replace(/^\u522A\u9664\u5F85\u8FA6\s+/, ""), 10);
+  if (/^刪除待辦\s+\d+$/.test(text)) {
+    const index = parseInt(text.replace(/^刪除待辦\s+/, ""), 10);
     await handleDeleteTodoByIndex(replyToken, index, userId, sheets);
     return;
   }
 
-  for (let i = 0; i < CATEGORIES.length; i++) {
-    const cat = CATEGORIES[i];
-    if (text === cat + "\u6536\u85CF" || text === cat) {
+  // 分類查詢（支援動態分類）
+  const userCats = await getUserCategories(sheets, userId);
+  for (let i = 0; i < userCats.length; i++) {
+    const cat = userCats[i];
+    if (text === cat + "收藏" || text === cat) {
       await handleQueryCategory(replyToken, cat, userId, sheets);
       return;
     }
@@ -295,37 +328,38 @@ async function handleTextMessage(replyToken, text, userId, clients) {
     return;
   }
 
-  if (text.indexOf("\u6A19\u7C64 ") === 0 || text.indexOf("\u52A0\u6A19\u7C64 ") === 0) {
+  // 加標籤 - 修正：只匹配有內容的標籤指令
+  if (/^(標籤|加標籤)\s+\S/.test(text)) {
     await handleAddTag(replyToken, text, userId, sheets);
     return;
   }
-  if (text.indexOf("\u67E5\u6A19\u7C64 ") === 0) {
+  if (text.indexOf("查標籤 ") === 0) {
     const tag = text.slice(4).trim();
     await handleQueryTag(replyToken, tag, userId, sheets);
     return;
   }
-  if (text.charAt(0) === "#") {
+  if (text.charAt(0) === "#" && text.length > 1) {
     const tag = text.slice(1).trim();
     await handleQueryTag(replyToken, tag, userId, sheets);
     return;
   }
 
-  if (text.indexOf("\u641C\u5C0B ") === 0 || text.indexOf("\u627E ") === 0) {
-    const keyword = text.indexOf("\u641C\u5C0B ") === 0 ? text.slice(3).trim() : text.slice(2).trim();
+  if (text.indexOf("搜尋 ") === 0 || text.indexOf("找 ") === 0) {
+    const keyword = text.indexOf("搜尋 ") === 0 ? text.slice(3).trim() : text.slice(2).trim();
     await handleSearchLinks(replyToken, keyword, userId, sheets);
     return;
   }
 
-  if (text === "\u6700\u8FD1\u6536\u85CF") {
+  if (text === "最近收藏") {
     await handleRecentLinks(replyToken, userId, sheets);
     return;
   }
-  if (text === "\u6700\u8FD1\u6A94\u6848") {
+  if (text === "最近檔案") {
     await handleRecentFiles(replyToken, userId, sheets);
     return;
   }
 
-  if (/\u660E\u5929|\u884C\u7A0B|\u63D0\u9192|\u6703\u8B70|\u4ECA\u5929|\u4E0B\u5348|\u4E0A\u5348|\u65E9\u4E0A|\u5F8C\u5929|\u4E0B\u9031|\u4E0B\u5468|\u9031\u4E00|\u9031\u4E8C|\u9031\u4E09|\u9031\u56DB|\u9031\u4E94|\u9031\u516D|\u9031\u65E5/.test(text)) {
+  if (/明天|行程|提醒|會議|今天|下午|上午|早上|後天|下週|下周|週一|週二|週三|週四|週五|週六|週日/.test(text)) {
     await handleCalendar(replyToken, text, userId, calendar, sheets);
     return;
   }
@@ -340,7 +374,7 @@ async function handleTextMessage(replyToken, text, userId, clients) {
 function buildTodoMenuFlex() {
   return {
     type: "flex",
-    altText: "\u5F85\u8FA6\u529F\u80FD\u9078\u55AE",
+    altText: "待辦功能選單",
     contents: {
       type: "bubble",
       styles: { header: { backgroundColor: "#2D3561" } },
@@ -349,8 +383,8 @@ function buildTodoMenuFlex() {
         layout: "vertical",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "\u5F85\u8FA6\u529F\u80FD\u9078\u55AE", color: "#FFFFFF", weight: "bold", size: "md" },
-          { type: "text", text: "\u9EDE\u4E0B\u65B9\u6309\u9215\u64CD\u4F5C", color: "#FFFFFFCC", size: "xs" },
+          { type: "text", text: "待辦功能選單", color: "#FFFFFF", weight: "bold", size: "md" },
+          { type: "text", text: "點下方按鈕操作", color: "#FFFFFFCC", size: "xs" },
         ],
       },
       body: {
@@ -359,10 +393,10 @@ function buildTodoMenuFlex() {
         paddingAll: "16px",
         spacing: "md",
         contents: [
-          { type: "text", text: "\u65B0\u589E\u5F85\u8FA6\u7BC4\u4F8B", weight: "bold", size: "sm", color: "#333333" },
-          { type: "text", text: "\u6574\u7406\u5831\u50F9\u55AE", size: "sm", color: "#666666", wrap: true },
-          { type: "text", text: "\u660E\u5929\u4E0B\u53483\u9EDE\u63D0\u9192\u6211\u56DE\u8986\u5BA2\u6236", size: "sm", color: "#666666", wrap: true },
-          { type: "text", text: "\u9EDE\u300C\u65B0\u589E\u5F85\u8FA6\u300D\u5F8C\u76F4\u63A5\u8F38\u5165\u5167\u5BB9\u5373\u53EF", size: "xs", color: "#999999", wrap: true },
+          { type: "text", text: "新增待辦範例", weight: "bold", size: "sm", color: "#333333" },
+          { type: "text", text: "整理報價單", size: "sm", color: "#666666", wrap: true },
+          { type: "text", text: "明天下午3點提醒我回覆客戶", size: "sm", color: "#666666", wrap: true },
+          { type: "text", text: "點「新增待辦」後直接輸入內容即可", size: "xs", color: "#999999", wrap: true },
         ],
       },
       footer: {
@@ -376,8 +410,8 @@ function buildTodoMenuFlex() {
             layout: "horizontal",
             spacing: "sm",
             contents: [
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "\u67E5\u770B\u5F85\u8FA6", data: "action=todo_view", displayText: "\u67E5\u770B\u5F85\u8FA6" } },
-              { type: "button", style: "primary", height: "sm", flex: 1, color: "#2D3561", action: { type: "postback", label: "\u65B0\u589E\u5F85\u8FA6", data: "action=todo_new", displayText: "\u65B0\u589E\u5F85\u8FA6" } },
+              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "查看待辦", data: "action=todo_view", displayText: "查看待辦" } },
+              { type: "button", style: "primary", height: "sm", flex: 1, color: "#2D3561", action: { type: "postback", label: "新增待辦", data: "action=todo_new", displayText: "新增待辦" } },
             ],
           },
           {
@@ -385,8 +419,8 @@ function buildTodoMenuFlex() {
             layout: "horizontal",
             spacing: "sm",
             contents: [
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "\u5B8C\u6210\u5F85\u8FA6", data: "action=todo_complete", displayText: "\u5B8C\u6210\u5F85\u8FA6" } },
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "\u522A\u9664\u5F85\u8FA6", data: "action=todo_delete", displayText: "\u522A\u9664\u5F85\u8FA6" } },
+              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "完成待辦", data: "action=todo_complete", displayText: "完成待辦" } },
+              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "刪除待辦", data: "action=todo_delete", displayText: "刪除待辦" } },
             ],
           },
         ],
@@ -425,23 +459,23 @@ async function handleCreateTodo(replyToken, content, userId, sheets, calendar) {
   await appendRow(sheets, SHEET.TODOS, row);
 
   const bodyContents = [
-    { type: "text", text: "\u5DF2\u65B0\u589E\u5F85\u8FA6", weight: "bold", size: "md", color: "#0F9D58" },
+    { type: "text", text: "已新增待辦", weight: "bold", size: "md", color: "#0F9D58" },
     { type: "text", text: content, size: "sm", color: "#333333", wrap: true },
   ];
-  if (remindText) bodyContents.push(makeRow("\u63D0\u9192", remindText));
-  if (googleEventId) bodyContents.push({ type: "text", text: "\u5DF2\u540C\u6B65\u5230 Google \u65E5\u66C6", size: "xs", color: "#0F9D58" });
+  if (remindText) bodyContents.push(makeRow("提醒", remindText));
+  if (googleEventId) bodyContents.push({ type: "text", text: "已同步到 Google 日曆", size: "xs", color: "#0F9D58" });
 
   await replyFlex(replyToken, {
     type: "flex",
-    altText: "\u5DF2\u65B0\u589E\u5F85\u8FA6",
+    altText: "已新增待辦",
     contents: {
       type: "bubble",
       body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md", contents: bodyContents },
       footer: {
         type: "box", layout: "horizontal", spacing: "sm", paddingAll: "12px",
         contents: [
-          { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "\u67E5\u770B\u5F85\u8FA6", data: "action=todo_view", displayText: "\u67E5\u770B\u5F85\u8FA6" } },
-          { type: "button", style: "primary", height: "sm", flex: 1, color: "#2D3561", action: { type: "postback", label: "\u518D\u65B0\u589E\u4E00\u7B46", data: "action=todo_new", displayText: "\u65B0\u589E\u5F85\u8FA6" } },
+          { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "查看待辦", data: "action=todo_view", displayText: "查看待辦" } },
+          { type: "button", style: "primary", height: "sm", flex: 1, color: "#2D3561", action: { type: "postback", label: "再新增一筆", data: "action=todo_new", displayText: "新增待辦" } },
         ],
       },
     },
@@ -451,7 +485,7 @@ async function handleCreateTodo(replyToken, content, userId, sheets, calendar) {
 async function handleShowTodos(replyToken, userId, sheets) {
   const rows = (await getTodoRows(sheets, userId)).filter(function(r) { return String(r[2] || "pending") === "pending"; });
   if (!rows.length) {
-    await replyText(replyToken, "\u76EE\u524D\u6C92\u6709\u5F85\u8FA6\u3002\n\n\u8F38\u5165\u300C\u65B0\u589E\u5F85\u8FA6\u300D\u65B0\u589E\u7B2C\u4E00\u7B46");
+    await replyText(replyToken, "目前沒有待辦。\n\n輸入「新增待辦」新增第一筆");
     return;
   }
   const lines = rows.slice(0, 10).map(function(r, i) {
@@ -459,17 +493,17 @@ async function handleShowTodos(replyToken, userId, sheets) {
     const remind = String(r[4] || "");
     return remind ? (i + 1) + ". " + content + "\n   [" + remind + "]" : (i + 1) + ". " + content;
   });
-  await replyText(replyToken, "\u76EE\u524D\u5F85\u8FA6\uFF08" + rows.length + " \u7B46\uFF09\n\n" + lines.join("\n\n") + "\n\n\u5B8C\u6210\u8ACB\u8F38\u5165\uFF1A\u5B8C\u6210\u5F85\u8FA6 \u5E8F\u865F");
+  await replyText(replyToken, "目前待辦（" + rows.length + " 筆）\n\n" + lines.join("\n\n") + "\n\n完成請輸入：完成待辦 序號");
 }
 
 async function handlePromptCompleteTodo(replyToken, userId, sheets) {
   const rows = (await getTodoRows(sheets, userId)).filter(function(r) { return String(r[2] || "pending") === "pending"; });
-  if (!rows.length) { await replyText(replyToken, "\u76EE\u524D\u6C92\u6709\u53EF\u5B8C\u6210\u7684\u5F85\u8FA6\u3002"); return; }
+  if (!rows.length) { await replyText(replyToken, "目前沒有可完成的待辦。"); return; }
   const lines = rows.slice(0, 10).map(function(r, i) {
     const remind = String(r[4] || "");
     return remind ? (i + 1) + ". " + String(r[1] || "") + " (" + remind + ")" : (i + 1) + ". " + String(r[1] || "");
   });
-  await replyText(replyToken, "\u8ACB\u8F38\u5165\u8981\u5B8C\u6210\u7684\u5E8F\u865F\uFF1A\n\n" + lines.join("\n") + "\n\n\u4F8B\u5982\u8F38\u5165\uFF1A\u5B8C\u6210\u5F85\u8FA6 1");
+  await replyText(replyToken, "請輸入要完成的序號：\n\n" + lines.join("\n") + "\n\n例如輸入：完成待辦 1");
 }
 
 async function handleCompleteTodoByIndex(replyToken, index, userId, sheets) {
@@ -479,7 +513,7 @@ async function handleCompleteTodoByIndex(replyToken, index, userId, sheets) {
   });
 
   if (!index || index < 1 || index > pendingRows.length) {
-    await replyText(replyToken, "\u5E8F\u865F\u7121\u6548\uFF0C\u8ACB\u8F38\u5165 1~" + pendingRows.length + " \u4E4B\u9593\u7684\u6578\u5B57\u3002");
+    await replyText(replyToken, "序號無效，請輸入 1~" + pendingRows.length + " 之間的數字。");
     return;
   }
 
@@ -494,17 +528,17 @@ async function handleCompleteTodoByIndex(replyToken, index, userId, sheets) {
     requestBody: { values: [["done"]] },
   });
 
-  await replyText(replyToken, "\u5DF2\u5B8C\u6210\u5F85\u8FA6\n" + content);
+  await replyText(replyToken, "已完成待辦\n" + content);
 }
 
 async function handlePromptDeleteTodo(replyToken, userId, sheets) {
   const rows = (await getTodoRows(sheets, userId)).filter(function(r) { return String(r[2] || "pending") === "pending"; });
-  if (!rows.length) { await replyText(replyToken, "\u76EE\u524D\u6C92\u6709\u53EF\u522A\u9664\u7684\u5F85\u8FA6\u3002"); return; }
+  if (!rows.length) { await replyText(replyToken, "目前沒有可刪除的待辦。"); return; }
   const lines = rows.slice(0, 10).map(function(r, i) {
     const remind = String(r[4] || "");
     return remind ? (i + 1) + ". " + String(r[1] || "") + " (" + remind + ")" : (i + 1) + ". " + String(r[1] || "");
   });
-  await replyText(replyToken, "\u8ACB\u8F38\u5165\u8981\u522A\u9664\u7684\u5E8F\u865F\uFF1A\n\n" + lines.join("\n") + "\n\n\u4F8B\u5982\u8F38\u5165\uFF1A\u522A\u9664\u5F85\u8FA6 1");
+  await replyText(replyToken, "請輸入要刪除的序號：\n\n" + lines.join("\n") + "\n\n例如輸入：刪除待辦 1");
 }
 
 async function handleDeleteTodoByIndex(replyToken, index, userId, sheets) {
@@ -514,7 +548,7 @@ async function handleDeleteTodoByIndex(replyToken, index, userId, sheets) {
   });
 
   if (!index || index < 1 || index > pendingRows.length) {
-    await replyText(replyToken, "\u5E8F\u865F\u7121\u6548\uFF0C\u8ACB\u8F38\u5165 1~" + pendingRows.length + " \u4E4B\u9593\u7684\u6578\u5B57\u3002");
+    await replyText(replyToken, "序號無效，請輸入 1~" + pendingRows.length + " 之間的數字。");
     return;
   }
 
@@ -529,7 +563,7 @@ async function handleDeleteTodoByIndex(replyToken, index, userId, sheets) {
     requestBody: { values: [["deleted"]] },
   });
 
-  await replyText(replyToken, "\u5DF2\u522A\u9664\u5F85\u8FA6\n" + content);
+  await replyText(replyToken, "已刪除待辦\n" + content);
 }
 
 // ============================================================
@@ -567,72 +601,97 @@ async function handleLinkSave(replyToken, rawText, urls, userId, sheets) {
     const platform = detectPlatform(url);
     const id = generateId("T");
     const now = formatDateTime(new Date());
-    const row = [id, url, platform.name, "", note, "", "\u672A\u5206\u985E", userId, now, now, rawText];
+    const row = [id, url, platform.name, "", note, "", "未分類", userId, now, now, rawText];
     await appendRow(sheets, SHEET.THREADS, row);
-    saved.push({ url: url, platform: platform, duplicate: false, note: note });
+    saved.push({ url: url, platform: platform, duplicate: false, note: note, id: id });
   }
 
   if (saved.length === 1 && !saved[0].duplicate) {
-    await replyFlex(replyToken, buildLinkSavedFlex(saved[0].url, saved[0].platform, saved[0].note));
+    // 動態讀取分類
+    const userCats = await getUserCategories(sheets, userId);
+    await replyFlex(replyToken, buildLinkSavedFlex(saved[0].url, saved[0].platform, saved[0].note, userCats));
     return;
   }
   if (saved.length === 1 && saved[0].duplicate) {
-    await replyText(replyToken, "\u9019\u5247\u9023\u7D50\u4E4B\u524D\u5DF2\u7D93\u6536\u85CF\u904E\u3002");
+    await replyText(replyToken, "這則連結之前已經收藏過。");
     return;
   }
   const lines = saved.map(function(s, i) {
-    return s.duplicate ? (i + 1) + ". \u5DF2\u6536\u85CF\u904E" : (i + 1) + ". [" + s.platform.name + "] \u5DF2\u6536\u85CF";
+    return s.duplicate ? (i + 1) + ". 已收藏過" : (i + 1) + ". [" + s.platform.name + "] 已收藏";
   });
-  await replyText(replyToken, "\u6536\u85CF " + urls.length + " \u5247\u9023\u7D50\n\n" + lines.join("\n"));
+  await replyText(replyToken, "收藏 " + urls.length + " 則連結\n\n" + lines.join("\n"));
 }
 
-function buildLinkSavedFlex(url, platform, note) {
+// ★ 修正1：動態分類按鈕 + 修正2：加標籤按鈕不再有尾隨空格
+function buildLinkSavedFlex(url, platform, note, userCats) {
   const now = formatDateTime(new Date());
+  // 排除「未分類」，最多顯示5個分類按鈕（LINE Flex 限制）
+  const catButtons = (userCats || DEFAULT_CATEGORIES)
+    .filter(function(c) { return c !== "未分類"; })
+    .slice(0, 5)
+    .map(function(cat) {
+      return {
+        type: "button", style: "secondary", height: "sm", flex: 1,
+        action: { type: "postback", label: cat, data: "action=set_category&id=LAST&cat=" + cat, displayText: "設為" + cat }
+      };
+    });
+
+  // 超過3個分成兩排
+  let catRows = [];
+  if (catButtons.length <= 3) {
+    catRows = [{ type: "box", layout: "horizontal", spacing: "sm", contents: catButtons }];
+  } else {
+    catRows = [
+      { type: "box", layout: "horizontal", spacing: "sm", contents: catButtons.slice(0, 3) },
+      { type: "box", layout: "horizontal", spacing: "sm", contents: catButtons.slice(3) },
+    ];
+  }
+
   return {
     type: "flex",
-    altText: "\u5DF2\u6536\u85CF\u6210\u529F",
+    altText: "已收藏成功",
     contents: {
       type: "bubble",
       size: "mega",
       header: {
         type: "box", layout: "vertical", paddingAll: "16px", backgroundColor: "#1A1A2E",
         contents: [
-          { type: "text", text: "\u5DF2\u6536\u85CF\u6210\u529F", color: "#FFFFFF", weight: "bold", size: "md" },
+          { type: "text", text: "已收藏成功", color: "#FFFFFF", weight: "bold", size: "md" },
           { type: "text", text: platform.name, color: "#FFFFFFCC", size: "sm" },
         ],
       },
       body: {
         type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
         contents: [
-          makeRow("\u5099\u8A3B", note || "(\u672A\u586B\u5BEB)"),
-          makeRow("\u5206\u985E", "\u672A\u5206\u985E"),
-          makeRow("\u6642\u9593", now),
+          makeRow("備註", note || "(未填寫)"),
+          makeRow("分類", "未分類"),
+          makeRow("時間", now),
           { type: "separator" },
-          { type: "text", text: "\u8ACB\u9078\u64C7\u6536\u85CF\u5206\u985E", size: "sm", color: "#555555", weight: "bold" },
-          {
-            type: "box", layout: "horizontal", spacing: "sm",
-            contents: ["\u500B\u4EBA", "\u5DE5\u4F5C", "\u5BB6\u5EAD"].map(function(cat) {
-              return { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: cat, data: "action=set_category&id=LAST&cat=" + cat, displayText: "\u8A2D\u70BA" + cat } };
-            }),
-          },
+          { type: "text", text: "請選擇收藏分類", size: "sm", color: "#555555", weight: "bold" },
+          ...catRows,
         ],
       },
       footer: {
         type: "box", layout: "horizontal", spacing: "sm", paddingAll: "12px",
         contents: [
-          { type: "button", style: "primary", flex: 2, color: "#1A1A2E", action: { type: "uri", label: "\u958B\u555F\u9023\u7D50", uri: url } },
-          { type: "button", style: "secondary", flex: 1, action: { type: "message", label: "\u52A0\u6A19\u7C64", text: "\u52A0\u6A19\u7C64 " } },
+          { type: "button", style: "primary", flex: 2, color: "#1A1A2E", action: { type: "uri", label: "開啟連結", uri: url } },
+          // ★ 修正2：加標籤按鈕改用 postback，避免空白字串觸發主選單
+          { type: "button", style: "secondary", flex: 1, action: { type: "postback", label: "加標籤", data: "action=add_tag_prompt", displayText: "加標籤" } },
         ],
       },
     },
   };
 }
 
+// ★ 修正2：加標籤 postback 處理
+// 在 handlePostback 裡加上這個 action：
+// 已在 handlePostback 函數中補上 add_tag_prompt 處理
+
 async function handleSetCategory(replyToken, category, userId, sheets) {
   const result = await findLastUserRow(sheets, SHEET.THREADS, userId);
   const lastRow = result.row;
   const lastIndex = result.index;
-  if (lastIndex === -1) { await replyText(replyToken, "\u627E\u4E0D\u5230\u6700\u8FD1\u7684\u6536\u85CF\u3002"); return; }
+  if (lastIndex === -1) { await replyText(replyToken, "找不到最近的收藏。"); return; }
 
   const rowNum = lastIndex + 1;
   const now = formatDateTime(new Date());
@@ -648,23 +707,24 @@ async function handleSetCategory(replyToken, category, userId, sheets) {
   });
 
   const url = String(lastRow[1] || "");
+  const catColor = CATEGORY_COLORS[category] || "#1A1A2E";
   await replyFlex(replyToken, {
     type: "flex",
-    altText: "\u5DF2\u8A2D\u70BA" + category,
+    altText: "已設為" + category,
     contents: {
       type: "bubble",
       body: {
         type: "box", layout: "vertical", paddingAll: "20px", spacing: "md",
         contents: [
-          { type: "text", text: "\u5DF2\u6B78\u985E\u5230\u300C" + category + "\u300D", weight: "bold", size: "md", color: "#333333" },
-          { type: "text", text: "\u4E4B\u5F8C\u53EF\u7528\u300C" + category + "\u6536\u85CF\u300D\u67E5\u8A62", size: "xs", color: "#888888" },
+          { type: "text", text: "已歸類到「" + category + "」", weight: "bold", size: "md", color: "#333333" },
+          { type: "text", text: "之後可用「" + category + "收藏」查詢", size: "xs", color: "#888888" },
         ],
       },
       footer: {
         type: "box", layout: "horizontal", spacing: "sm", paddingAll: "12px",
         contents: [
-          { type: "button", style: "primary", height: "sm", flex: 1, color: CATEGORY_COLORS[category] || "#1A1A2E", action: { type: "postback", label: "\u67E5\u770B" + category, data: "action=view_category&cat=" + category, displayText: category + "\u6536\u85CF" } },
-          { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "uri", label: "\u958B\u555F\u9023\u7D50", uri: url } },
+          { type: "button", style: "primary", height: "sm", flex: 1, color: catColor, action: { type: "postback", label: "查看" + category, data: "action=view_category&cat=" + category, displayText: category + "收藏" } },
+          { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "uri", label: "開啟連結", uri: url } },
         ],
       },
     },
@@ -673,23 +733,23 @@ async function handleSetCategory(replyToken, category, userId, sheets) {
 
 async function handleQueryCategory(replyToken, category, userId, sheets) {
   const data = await getSheetData(sheets, SHEET.THREADS);
-  const all = data.slice(1).filter(function(row) { return String(row[7] || "") === userId && String(row[6] || "\u672A\u5206\u985E") === category; }).reverse();
+  const all = data.slice(1).filter(function(row) { return String(row[7] || "") === userId && String(row[6] || "未分類") === category; }).reverse();
   const results = all.slice(0, 10);
 
   if (!results.length) {
-    await replyText(replyToken, category + " \u9084\u6C92\u6709\u6536\u85CF\u3002\n\n\u6536\u85CF\u9023\u7D50\u5F8C\uFF0C\u9EDE\u6210\u529F\u5361\u7247\u4E0B\u65B9\u7684\u5206\u985E\u6309\u9215\u5373\u53EF\u6B78\u985E\u3002");
+    await replyText(replyToken, category + " 還沒有收藏。\n\n收藏連結後，點成功卡片下方的分類按鈕即可歸類。");
     return;
   }
-  await replyFlex(replyToken, buildLinksCarousel(results, category + " - " + all.length + " \u7B46"));
+  await replyFlex(replyToken, buildLinksCarousel(results, category + " - " + all.length + " 筆"));
 }
 
 async function handleAddTag(replyToken, text, userId, sheets) {
-  const tagStr = text.replace(/^(\u6A19\u7C64|\u52A0\u6A19\u7C64)\s+/, "").trim();
+  const tagStr = text.replace(/^(標籤|加標籤)\s+/, "").trim();
   const tags = tagStr.split(/[\s,]+/).filter(function(t) { return t.length > 0; });
   const result = await findLastUserRow(sheets, SHEET.THREADS, userId);
-  if (result.index === -1) { await replyText(replyToken, "\u627E\u4E0D\u5230\u6700\u8FD1\u7684\u6536\u85CF\u3002"); return; }
+  if (result.index === -1) { await replyText(replyToken, "找不到最近的收藏。"); return; }
 
-  const tagValue = tags.join("\u3001");
+  const tagValue = tags.join("、");
   const rowNum = result.index + 1;
   const now = formatDateTime(new Date());
   await sheets.spreadsheets.values.batchUpdate({
@@ -702,23 +762,23 @@ async function handleAddTag(replyToken, text, userId, sheets) {
       ],
     },
   });
-  await replyText(replyToken, "\u6A19\u7C64\u5DF2\u66F4\u65B0\n" + tags.map(function(t) { return "#" + t; }).join(" "));
+  await replyText(replyToken, "標籤已更新\n" + tags.map(function(t) { return "#" + t; }).join(" "));
 }
 
 async function handleQueryTag(replyToken, tag, userId, sheets) {
-  if (!tag) { await replyText(replyToken, "\u8ACB\u544A\u8A34\u6211\u8981\u67E5\u8A62\u7684\u6A19\u7C64"); return; }
+  if (!tag) { await replyText(replyToken, "請告訴我要查詢的標籤"); return; }
   const data = await getSheetData(sheets, SHEET.THREADS);
   const all = data.slice(1).filter(function(row) { return String(row[7] || "") === userId && String(row[5] || "").includes(tag); });
   const results = all.reverse().slice(0, 10);
-  if (!results.length) { await replyText(replyToken, "\u6C92\u6709\u6A19\u7C64\u300C" + tag + "\u300D\u7684\u6536\u85CF\u3002"); return; }
-  await replyFlex(replyToken, buildLinksCarousel(results, "\u6A19\u7C64 " + tag + " - " + all.length + " \u7B46"));
+  if (!results.length) { await replyText(replyToken, "沒有標籤「" + tag + "」的收藏。"); return; }
+  await replyFlex(replyToken, buildLinksCarousel(results, "標籤 " + tag + " - " + all.length + " 筆"));
 }
 
 async function handleRecentLinks(replyToken, userId, sheets) {
   const data = await getSheetData(sheets, SHEET.THREADS);
   const results = data.slice(1).filter(function(r) { return String(r[7] || "") === userId; }).reverse().slice(0, 10);
-  if (!results.length) { await replyText(replyToken, "\u9084\u6C92\u6709\u6536\u85CF\u3002\n\n\u8CBC\u4E0A\u4EFB\u610F\u9023\u7D50\u5C31\u6703\u81EA\u52D5\u6536\u85CF\u3002"); return; }
-  await replyFlex(replyToken, buildLinksCarousel(results, "\u6700\u8FD1 " + results.length + " \u5247\u6536\u85CF"));
+  if (!results.length) { await replyText(replyToken, "還沒有收藏。\n\n貼上任意連結就會自動收藏。"); return; }
+  await replyFlex(replyToken, buildLinksCarousel(results, "最近 " + results.length + " 則收藏"));
 }
 
 async function handleSearchLinks(replyToken, keyword, userId, sheets) {
@@ -727,8 +787,8 @@ async function handleSearchLinks(replyToken, keyword, userId, sheets) {
     .filter(function(row) { return String(row[7] || "") === userId; })
     .filter(function(row) { return [row[1], row[4], row[5], row[6], row[10]].join(" ").includes(keyword); })
     .reverse().slice(0, 8);
-  if (!results.length) { await replyText(replyToken, "\u6C92\u6709\u627E\u5230\u300C" + keyword + "\u300D\u7684\u6536\u85CF\u3002"); return; }
-  await replyFlex(replyToken, buildLinksCarousel(results, keyword + " - " + results.length + " \u7B46"));
+  if (!results.length) { await replyText(replyToken, "沒有找到「" + keyword + "」的收藏。"); return; }
+  await replyFlex(replyToken, buildLinksCarousel(results, keyword + " - " + results.length + " 筆"));
 }
 
 function buildLinksCarousel(rows, headerTitle) {
@@ -741,7 +801,7 @@ function buildLinksCarousel(rows, headerTitle) {
       type: "bubble", size: "mega",
       header: { type: "box", layout: "vertical", backgroundColor: "#1A1A2E", paddingAll: "14px", contents: [{ type: "text", text: headerTitle, color: "#FFFFFF", weight: "bold", size: "sm" }] },
       body: { type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm", contents: rows.slice(0, 8).map(function(r, i) { return buildLinkListRow(r, i); }) },
-      footer: { type: "box", layout: "vertical", paddingAll: "10px", contents: [{ type: "button", style: "link", height: "sm", action: { type: "message", label: "\u67E5\u770B\u6700\u8FD1\u6536\u85CF", text: "\u6700\u8FD1\u6536\u85CF" } }] },
+      footer: { type: "box", layout: "vertical", paddingAll: "10px", contents: [{ type: "button", style: "link", height: "sm", action: { type: "message", label: "查看最近收藏", text: "最近收藏" } }] },
     },
   };
 }
@@ -749,14 +809,14 @@ function buildLinksCarousel(rows, headerTitle) {
 function buildLinkCardBubble(r) {
   const url = String(r[1] || "");
   const platform = detectPlatform(url);
-  const note = String(r[4] || "").substring(0, 40) || "(\u672A\u586B\u5099\u8A3B)";
+  const note = String(r[4] || "").substring(0, 40) || "(未填備註)";
   const tags = String(r[5] || "");
-  const category = String(r[6] || "\u672A\u5206\u985E");
+  const category = String(r[6] || "未分類");
   const date = String(r[8] || r[7] || "").substring(0, 10);
 
   const bodyContents = [
     { type: "text", text: note, size: "sm", color: "#333333", wrap: true, maxLines: 3 },
-    makeRow("\u65E5\u671F", date),
+    makeRow("日期", date),
   ];
   if (tags) bodyContents.splice(1, 0, { type: "text", text: "#" + tags, size: "xs", color: "#888888" });
 
@@ -768,22 +828,22 @@ function buildLinkCardBubble(r) {
       { type: "text", text: category, size: "xs", flex: 0, color: "#FFFFFF99" },
     ]},
     body: { type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm", contents: bodyContents },
-    footer: { type: "box", layout: "vertical", paddingAll: "10px", contents: [{ type: "button", style: "primary", height: "sm", color: platform.color || "#1A1A2E", action: { type: "uri", label: "\u958B\u555F\u9023\u7D50", uri: url } }] },
+    footer: { type: "box", layout: "vertical", paddingAll: "10px", contents: [{ type: "button", style: "primary", height: "sm", color: platform.color || "#1A1A2E", action: { type: "uri", label: "開啟連結", uri: url } }] },
   };
 }
 
 function buildLinkListRow(r, i) {
   const url = String(r[1] || "");
   const platform = detectPlatform(url);
-  const note = String(r[4] || "").substring(0, 30) || "(\u672A\u586B\u5099\u8A3B)";
-  const category = String(r[6] || "\u672A\u5206\u985E");
+  const note = String(r[4] || "").substring(0, 30) || "(未填備註)";
+  const category = String(r[6] || "未分類");
   const date = String(r[8] || r[7] || "").substring(0, 10);
   return {
     type: "box", layout: "vertical", spacing: "xs", paddingTop: i === 0 ? "0px" : "8px",
     contents: [
       { type: "box", layout: "horizontal", contents: [
         { type: "text", text: "[" + platform.name + "] " + note, size: "sm", color: "#333333", flex: 1, wrap: true, maxLines: 2 },
-        { type: "button", style: "link", height: "sm", flex: 0, action: { type: "uri", label: "\u958B\u555F", uri: url } },
+        { type: "button", style: "link", height: "sm", flex: 0, action: { type: "uri", label: "開啟", uri: url } },
       ]},
       { type: "text", text: category + "  " + date, size: "xs", color: "#888888" },
       { type: "separator" },
@@ -818,7 +878,7 @@ async function handleFileMessage(replyToken, message, type, userId, clients) {
   } catch (err) {
     const msg = String(err && err.message ? err.message : err || "");
     console.error("File upload error:", msg);
-    await replyText(replyToken, "\u6A94\u6848\u5099\u4EFD\u5931\u6557\uFF1A" + msg);
+    await replyText(replyToken, "檔案備份失敗：" + msg);
   }
 }
 
@@ -853,7 +913,7 @@ async function uploadToDrive(drive, fileName, mimeType, buffer, fileType) {
 async function getOrCreateFolder(drive, folderName) {
   if (!DRIVE_FOLDER_ID) {
     const folder = await drive.files.create({
-      requestBody: { name: "LINE Bot \u5099\u4EFD", mimeType: "application/vnd.google-apps.folder" },
+      requestBody: { name: "LINE Bot 備份", mimeType: "application/vnd.google-apps.folder" },
       fields: "id",
     });
     return folder.data.id;
@@ -874,13 +934,13 @@ async function getOrCreateFolder(drive, folderName) {
 
 function buildFileSavedFlex(fileName, fileType, driveUrl, now) {
   return {
-    type: "flex", altText: "\u6A94\u6848\u5099\u4EFD\u5B8C\u6210",
+    type: "flex", altText: "檔案備份完成",
     contents: {
       type: "bubble",
       styles: { header: { backgroundColor: "#1a73e8" } },
-      header: { type: "box", layout: "vertical", paddingAll: "16px", contents: [{ type: "text", text: "\u6A94\u6848\u5099\u4EFD\u5B8C\u6210", color: "#ffffff", weight: "bold", size: "md" }] },
-      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md", contents: [makeRow("\u6A94\u6848\u540D", fileName), makeRow("\u985E\u578B", fileType.toUpperCase()), makeRow("\u6642\u9593", now)] },
-      footer: { type: "box", layout: "vertical", paddingAll: "12px", contents: [{ type: "button", style: "primary", height: "sm", color: "#1a73e8", action: { type: "uri", label: "\u67E5\u770B Google Drive", uri: driveUrl } }] },
+      header: { type: "box", layout: "vertical", paddingAll: "16px", contents: [{ type: "text", text: "檔案備份完成", color: "#ffffff", weight: "bold", size: "md" }] },
+      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md", contents: [makeRow("檔案名", fileName), makeRow("類型", fileType.toUpperCase()), makeRow("時間", now)] },
+      footer: { type: "box", layout: "vertical", paddingAll: "12px", contents: [{ type: "button", style: "primary", height: "sm", color: "#1a73e8", action: { type: "uri", label: "查看 Google Drive", uri: driveUrl } }] },
     },
   };
 }
@@ -888,11 +948,11 @@ function buildFileSavedFlex(fileName, fileType, driveUrl, now) {
 async function handleRecentFiles(replyToken, userId, sheets) {
   const data = await getSheetData(sheets, SHEET.FILES);
   const results = data.slice(1).filter(function(r) { return String(r[9] || "") === userId; }).reverse().slice(0, 10);
-  if (!results.length) { await replyText(replyToken, "\u9084\u6C92\u6709\u5099\u4EFD\u6A94\u6848\u3002"); return; }
+  if (!results.length) { await replyText(replyToken, "還沒有備份檔案。"); return; }
   const lines = results.map(function(r, i) {
     return (i + 1) + ". " + String(r[1] || "") + "\n   " + String(r[2] || "") + "  " + String(r[11] || "").substring(0, 10) + "\n   " + String(r[6] || "");
   });
-  await replyText(replyToken, "\u6700\u8FD1 " + results.length + " \u7B46\u6A94\u6848\n\n" + lines.join("\n\n"));
+  await replyText(replyToken, "最近 " + results.length + " 筆檔案\n\n" + lines.join("\n\n"));
 }
 
 // ============================================================
@@ -902,7 +962,7 @@ async function handleRecentFiles(replyToken, userId, sheets) {
 async function handleCalendar(replyToken, text, userId, calendar, sheets) {
   const parsed = parseCalendarInput(text);
   if (!parsed) {
-    await replyText(replyToken, "\u6211\u627E\u4E0D\u5230\u65E5\u671F\uFF0C\u7121\u6CD5\u5EFA\u7ACB\u884C\u7A0B\u3002\n\n\u8ACB\u7528\u9019\u6A23\u7684\u683C\u5F0F\uFF1A\n\u660E\u5929 \u4E0B\u53483\u9EDE \u958B\u6703\n4/25 10:00 \u5BA2\u6236\u7C21\u5831");
+    await replyText(replyToken, "我找不到日期，無法建立行程。\n\n請用這樣的格式：\n明天 下午3點 開會\n4/25 10:00 客戶簡報");
     return;
   }
   try {
@@ -914,7 +974,7 @@ async function handleCalendar(replyToken, text, userId, calendar, sheets) {
     await replyFlex(replyToken, buildCalendarFlex(parsed, event));
   } catch (err) {
     console.error("Calendar error:", err);
-    await replyText(replyToken, "\u5EFA\u7ACB\u884C\u7A0B\u5931\u6557\uFF1A" + err.message);
+    await replyText(replyToken, "建立行程失敗：" + err.message);
   }
 }
 
@@ -925,21 +985,21 @@ function parseCalendarInput(text) {
   let targetTime = null;
   let title = text;
 
-  if (/\u4ECA\u5929|\u4ECA\u65E5/.test(text)) {
+  if (/今天|今日/.test(text)) {
     targetDate = new Date(now);
-    title = title.replace(/\u4ECA\u5929|\u4ECA\u65E5/g, "");
-  } else if (/\u660E\u5929|\u660E\u65E5/.test(text)) {
+    title = title.replace(/今天|今日/g, "");
+  } else if (/明天|明日/.test(text)) {
     targetDate = new Date(now);
     targetDate.setDate(targetDate.getDate() + 1);
-    title = title.replace(/\u660E\u5929|\u660E\u65E5/g, "");
-  } else if (/\u5F8C\u5929/.test(text)) {
+    title = title.replace(/明天|明日/g, "");
+  } else if (/後天/.test(text)) {
     targetDate = new Date(now);
     targetDate.setDate(targetDate.getDate() + 2);
-    title = title.replace(/\u5F8C\u5929/g, "");
+    title = title.replace(/後天/g, "");
   } else {
-    const weekMatch = text.match(/\u4E0B[\u9031\u5468]?(\u4E00|\u4E8C|\u4E09|\u56DB|\u4E94|\u516D|\u65E5|\u5929)?/);
+    const weekMatch = text.match(/下[週周]?([一二三四五六日天])?/);
     if (weekMatch && weekMatch[1]) {
-      const dayMap = { "\u4E00": 1, "\u4E8C": 2, "\u4E09": 3, "\u56DB": 4, "\u4E94": 5, "\u516D": 6, "\u65E5": 0, "\u5929": 0 };
+      const dayMap = { "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "日": 0, "天": 0 };
       const target = dayMap[weekMatch[1]];
       targetDate = new Date(now);
       let diff = (target - targetDate.getDay() + 7) % 7;
@@ -948,7 +1008,7 @@ function parseCalendarInput(text) {
       targetDate.setDate(targetDate.getDate() + diff);
       title = title.replace(weekMatch[0], "");
     } else {
-      const mdMatch = text.match(/(\d{1,2})[\/\u6708](\d{1,2})[\u65E5]?/);
+      const mdMatch = text.match(/(\d{1,2})[\/月](\d{1,2})[日]?/);
       if (mdMatch) {
         targetDate = new Date(now.getFullYear(), parseInt(mdMatch[1], 10) - 1, parseInt(mdMatch[2], 10));
         title = title.replace(mdMatch[0], "");
@@ -958,8 +1018,8 @@ function parseCalendarInput(text) {
 
   if (!targetDate) return null;
 
-  const isPM = /\u4E0B\u5348|\u665A\u4E0A|pm/i.test(text);
-  const isAM = /\u4E0A\u5348|\u65E9\u4E0A|am/i.test(text);
+  const isPM = /下午|晚上|pm/i.test(text);
+  const isAM = /上午|早上|am/i.test(text);
   const timeMatch = text.match(/(\d{1,2})[:點時](\d{0,2})/);
 
   if (timeMatch) {
@@ -971,8 +1031,8 @@ function parseCalendarInput(text) {
     title = title.replace(timeMatch[0], "");
   }
 
-  title = title.replace(/\u4E0A\u5348|\u65E9\u4E0A|\u4E0B\u5348|\u665A\u4E0A|pm|am/gi, "").replace(/\s+/g, " ").trim();
-  if (!title) title = "\u884C\u7A0B\u5F85\u8FA6";
+  title = title.replace(/上午|早上|下午|晚上|pm|am/gi, "").replace(/\s+/g, " ").trim();
+  if (!title) title = "行程待辦";
 
   const start = new Date(targetDate);
   const isAllDay = !targetTime;
@@ -1001,15 +1061,15 @@ async function createCalendarEvent(calendar, parsed) {
 }
 
 function buildCalendarFlex(parsed, event) {
-  const timeStr = parsed.isAllDay ? formatDate(parsed.start) + "(\u5168\u5929)" : formatDate(parsed.start) + " " + formatTime(parsed.start);
+  const timeStr = parsed.isAllDay ? formatDate(parsed.start) + "(全天)" : formatDate(parsed.start) + " " + formatTime(parsed.start);
   return {
-    type: "flex", altText: "\u5DF2\u65B0\u589E\uFF1A" + parsed.title,
+    type: "flex", altText: "已新增：" + parsed.title,
     contents: {
       type: "bubble",
       styles: { header: { backgroundColor: "#0F9D58" } },
-      header: { type: "box", layout: "vertical", paddingAll: "16px", contents: [{ type: "text", text: "\u5DF2\u65B0\u589E\u5230 Google \u65E5\u66C6", color: "#ffffff", weight: "bold", size: "md" }] },
-      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md", contents: [makeRow("\u884C\u7A0B", parsed.title), makeRow("\u6642\u9593", timeStr), makeRow("\u63D0\u9192", parsed.isAllDay ? "(\u5168\u5929\uFF0C\u7121\u63D0\u9192)" : "\u958B\u59CB\u524D 10 \u5206\u9418")] },
-      footer: event.htmlLink ? { type: "box", layout: "vertical", paddingAll: "12px", contents: [{ type: "button", style: "primary", height: "sm", color: "#0F9D58", action: { type: "uri", label: "\u67E5\u770B Google \u65E5\u66C6", uri: event.htmlLink } }] } : undefined,
+      header: { type: "box", layout: "vertical", paddingAll: "16px", contents: [{ type: "text", text: "已新增到 Google 日曆", color: "#ffffff", weight: "bold", size: "md" }] },
+      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md", contents: [makeRow("行程", parsed.title), makeRow("時間", timeStr), makeRow("提醒", parsed.isAllDay ? "(全天，無提醒)" : "開始前 10 分鐘")] },
+      footer: event.htmlLink ? { type: "box", layout: "vertical", paddingAll: "12px", contents: [{ type: "button", style: "primary", height: "sm", color: "#0F9D58", action: { type: "uri", label: "查看 Google 日曆", uri: event.htmlLink } }] } : undefined,
     },
   };
 }
@@ -1021,27 +1081,27 @@ function buildCalendarFlex(parsed, event) {
 function buildMainMenuFlex() {
   return {
     type: "flex",
-    altText: "\u4F60\u597D\uFF01\u6211\u53EF\u4EE5\u5E6B\u4F60\u505A\u9019\u4E9B\u4E8B",
+    altText: "你好！我可以幫你做這些事",
     contents: {
       type: "bubble", size: "mega",
       styles: { header: { backgroundColor: "#1A1A2E" } },
       header: {
         type: "box", layout: "vertical", paddingAll: "20px",
         contents: [
-          { type: "text", text: "\u4F60\u597D\uFF01\u6211\u53EF\u4EE5\u5E6B\u4F60\u505A\u9019\u4E9B\u4E8B", color: "#FFFFFF", weight: "bold", size: "md" },
-          { type: "text", text: "\u9078\u64C7\u529F\u80FD\u6216\u76F4\u63A5\u8F38\u5165", color: "#FFFFFF88", size: "xs" },
+          { type: "text", text: "你好！我可以幫你做這些事", color: "#FFFFFF", weight: "bold", size: "md" },
+          { type: "text", text: "選擇功能或直接輸入", color: "#FFFFFF88", size: "xs" },
         ],
       },
       body: {
         type: "box", layout: "vertical", paddingAll: "16px", spacing: "lg",
         contents: [
-          menuItem("[LINK]", "\u8CBC\u9023\u7D50\u6536\u85CF", "\u4EFB\u610F\u7DB2\u5740\u81EA\u52D5\u6536\u85CF\uFF0C\u53EF\u76F4\u63A5\u5206\u985E"),
+          menuItem("[LINK]", "貼連結收藏", "任意網址自動收藏，可直接分類"),
           { type: "separator" },
-          menuItem("[LIST]", "\u5F85\u8FA6\u6E05\u55AE", "\u67E5\u770B\u3001\u65B0\u589E\u3001\u5B8C\u6210\u3001\u522A\u9664\u5F85\u8FA6"),
+          menuItem("[LIST]", "待辦清單", "查看、新增、完成、刪除待辦"),
           { type: "separator" },
-          menuItem("[FILE]", "\u50B3\u5716\u7247/\u6A94\u6848", "\u81EA\u52D5\u5099\u4EFD\u5230 Google Drive"),
+          menuItem("[FILE]", "傳圖片/檔案", "自動備份到 Google Drive"),
           { type: "separator" },
-          menuItem("[CAL]", "\u8AAA\u5F85\u8FA6\u4E8B\u9805", "\u542B\u6642\u9593\u5247\u65B0\u589E\u5230 Google \u65E5\u66C6"),
+          menuItem("[CAL]", "說待辦事項", "含時間則新增到 Google 日曆"),
         ],
       },
       footer: {
@@ -1049,16 +1109,16 @@ function buildMainMenuFlex() {
         contents: [
           {
             type: "box", layout: "horizontal", spacing: "sm",
-            contents: CATEGORIES.filter(function(c) { return c !== "\u672A\u5206\u985E"; }).map(function(cat) {
-              return { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: cat, data: "action=view_category&cat=" + cat, displayText: cat + "\u6536\u85CF" } };
+            contents: DEFAULT_CATEGORIES.filter(function(c) { return c !== "未分類"; }).map(function(cat) {
+              return { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: cat, data: "action=view_category&cat=" + cat, displayText: cat + "收藏" } };
             }),
           },
           {
             type: "box", layout: "horizontal", spacing: "sm",
             contents: [
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "\u6700\u8FD1\u6536\u85CF", text: "\u6700\u8FD1\u6536\u85CF" } },
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "\u67E5\u770B\u5F85\u8FA6", text: "\u67E5\u770B\u5F85\u8FA6" } },
-              { type: "button", style: "primary", height: "sm", flex: 1, color: "#1A1A2E", action: { type: "message", label: "\u5F85\u8FA6\u6E05\u55AE", text: "\u5F85\u8FA6\u6E05\u55AE" } },
+              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "最近收藏", text: "最近收藏" } },
+              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "查看待辦", text: "查看待辦" } },
+              { type: "button", style: "primary", height: "sm", flex: 1, color: "#1A1A2E", action: { type: "message", label: "待辦清單", text: "待辦清單" } },
             ],
           },
         ],
