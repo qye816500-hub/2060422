@@ -154,6 +154,19 @@
   .modal-handle { width: 40px; height: 4px; border-radius: 2px; background: #E8E0E0; margin: 0 auto 20px; }
   .input { width: 100%; padding: 14px 16px; border: 2px solid #EDE4FF; border-radius: 14px; font-family: 'Nunito', sans-serif; font-size: 15px; color: var(--text); background: #FDFAFF; outline: none; margin-bottom: 12px; transition: border-color 0.2s; }
   .input:focus { border-color: var(--lavender-deep); }
+
+  /* Intro page */
+  .intro-card { background: white; border-radius: 20px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 20px rgba(180,120,100,0.12); display: flex; gap: 16px; align-items: flex-start; cursor: pointer; transition: all 0.2s; }
+  .intro-card:active { transform: scale(0.98); }
+  .intro-icon { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(180,100,200,0.2); }
+  .intro-content { flex: 1; }
+  .intro-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 5px; }
+  .intro-desc { font-size: 13px; color: var(--text-light); line-height: 1.55; margin-bottom: 8px; }
+  .intro-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .intro-tag { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; background: #F5F0FF; color: var(--brown); }
+  .how-step { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .how-num { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--pink), var(--lavender)); color: white; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .how-text { font-size: 13px; color: var(--text); line-height: 1.5; padding-top: 3px; }
 </style>
 </head>
 <body>
@@ -168,7 +181,8 @@
     <div class="header-avatar" id="avatarEl">🐰</div>
   </div>
   <div class="nav">
-    <button class="nav-btn active" onclick="switchTab('bookmarks', this)">📌 收藏</button>
+    <button class="nav-btn active" onclick="switchTab('intro', this)">✨ 功能介紹</button>
+    <button class="nav-btn" onclick="switchTab('bookmarks', this)">📌 收藏</button>
     <button class="nav-btn" onclick="switchTab('todos', this)">📋 待辦</button>
     <button class="nav-btn" onclick="switchTab('calendar', this)">📅 月曆</button>
     <button class="nav-btn" onclick="switchTab('files', this)">📁 檔案</button>
@@ -177,8 +191,74 @@
 
 <div class="main">
 
+  <!-- 功能介紹 -->
+  <div class="section active" id="section-intro">
+    <!-- Hero -->
+    <div style="text-align:center;padding:28px 16px 20px;background:linear-gradient(160deg,#FFE8F5 0%,#EDE4FF 100%);border-radius:24px;margin-bottom:20px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-20px;right:-20px;font-size:80px;opacity:0.12;transform:rotate(20deg)">🎀</div>
+      <div style="position:absolute;bottom:-20px;left:-20px;font-size:70px;opacity:0.10;transform:rotate(-15deg)">⭐</div>
+      <div style="font-size:64px;margin-bottom:12px;filter:drop-shadow(0 4px 8px rgba(200,100,150,0.2))">🤖</div>
+      <div style="font-size:22px;font-weight:800;color:#7B5EA7;margin-bottom:6px">嗨！我是 EE 小助理 🎀</div>
+      <div style="font-size:14px;color:#9B72CF;line-height:1.6">你的貼心生活小幫手<br>收藏、待辦、月曆、備份，一手搞定！</div>
+    </div>
+
+    <!-- Feature cards -->
+    <div style="font-size:16px;font-weight:800;color:#4A3728;margin-bottom:14px;display:flex;align-items:center;gap:6px">🌟 我能幫你做什麼？</div>
+
+    <!-- 收藏 -->
+    <div class="intro-card" onclick="switchTabByName('bookmarks')">
+      <div class="intro-icon" style="background:linear-gradient(135deg,#FFB7C5,#FF8FAB)">📌</div>
+      <div class="intro-content">
+        <div class="intro-title">收藏任意連結</div>
+        <div class="intro-desc">在 LINE 貼上任何連結，自動抓取縮圖並分類收藏。支援 Threads、Instagram、YouTube 等各大平台！</div>
+        <div class="intro-tags"><span class="intro-tag">🧵 Threads</span><span class="intro-tag">📸 Instagram</span><span class="intro-tag">🔗 任意連結</span></div>
+      </div>
+    </div>
+
+    <!-- 待辦 -->
+    <div class="intro-card" onclick="switchTabByName('todos')">
+      <div class="intro-icon" style="background:linear-gradient(135deg,#B5EAD7,#6DC9A8)">📋</div>
+      <div class="intro-content">
+        <div class="intro-title">待辦清單管理</div>
+        <div class="intro-desc">輸入待辦事項，設定提醒時間，完成後一鍵打勾。有設時間的還會自動同步到 Google 日曆！</div>
+        <div class="intro-tags"><span class="intro-tag">⏰ 提醒時間</span><span class="intro-tag">📅 同步日曆</span><span class="intro-tag">✅ 一鍵完成</span></div>
+      </div>
+    </div>
+
+    <!-- 月曆 -->
+    <div class="intro-card" onclick="switchTabByName('calendar')">
+      <div class="intro-icon" style="background:linear-gradient(135deg,#C5A8E8,#9B72CF)">📅</div>
+      <div class="intro-content">
+        <div class="intro-title">月曆行程總覽</div>
+        <div class="intro-desc">用月曆視角查看所有有時間的待辦事項，點擊日期快速查看當天安排。</div>
+        <div class="intro-tags"><span class="intro-tag">🗓️ 月曆檢視</span><span class="intro-tag">📍 點日期查詢</span></div>
+      </div>
+    </div>
+
+    <!-- 檔案 -->
+    <div class="intro-card" onclick="switchTabByName('files')">
+      <div class="intro-icon" style="background:linear-gradient(135deg,#FFE066,#FFD000)">📁</div>
+      <div class="intro-content">
+        <div class="intro-title">檔案自動備份</div>
+        <div class="intro-desc">傳送圖片或檔案給機器人，自動備份到你的 Google Drive，隨時隨地取用！</div>
+        <div class="intro-tags"><span class="intro-tag">🖼️ 圖片備份</span><span class="intro-tag">☁️ Google Drive</span></div>
+      </div>
+    </div>
+
+    <!-- How to use -->
+    <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 4px 20px rgba(180,120,100,0.12);margin-bottom:14px">
+      <div style="font-size:15px;font-weight:800;color:#4A3728;margin-bottom:14px;display:flex;align-items:center;gap:6px">💬 怎麼使用？</div>
+      <div class="how-step"><div class="how-num">1</div><div class="how-text">在 LINE 聊天室直接傳送連結 → 自動收藏！</div></div>
+      <div class="how-step"><div class="how-num">2</div><div class="how-text">傳送「新增待辦」或直接輸入事項 → 新增待辦！</div></div>
+      <div class="how-step"><div class="how-num">3</div><div class="how-text">傳送圖片或檔案 → 自動備份到 Google Drive！</div></div>
+      <div class="how-step"><div class="how-num">4</div><div class="how-text">點下方 Rich Menu 按鈕 → 快速進入各功能！</div></div>
+    </div>
+
+    <div style="text-align:center;padding:16px 0 8px;font-size:13px;color:#C0B8B5">🌸 有任何問題都可以問我喔！</div>
+  </div>
+
   <!-- 收藏 -->
-  <div class="section active" id="section-bookmarks">
+  <div class="section" id="section-bookmarks">
     <div class="section-title"><span>📌</span> 我的收藏</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
       <div class="filter-tabs" id="category-tabs" style="margin-bottom:0;flex:1">
@@ -313,12 +393,19 @@ async function initLiff() {
   const urlParams = new URLSearchParams(window.location.search);
   const initPage = urlParams.get('page');
   if (initPage) {
-    const tabMap = { 'bookmarks': 0, 'todos': 1, 'calendar': 2, 'files': 3 };
+    const tabMap = { 'intro': 0, 'bookmarks': 1, 'todos': 2, 'calendar': 3, 'files': 4 };
     const navBtns = document.querySelectorAll('.nav-btn');
     if (tabMap[initPage] !== undefined) {
       switchTab(initPage, navBtns[tabMap[initPage]]);
     }
   }
+}
+
+function switchTabByName(tab) {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const tabOrder = ['intro', 'bookmarks', 'todos', 'calendar', 'files'];
+  const idx = tabOrder.indexOf(tab);
+  switchTab(tab, idx >= 0 ? navBtns[idx] : null);
 }
 
 function switchTab(tab, btn) {
