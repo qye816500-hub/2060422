@@ -65,6 +65,7 @@
   .bm-btn-open { background: linear-gradient(135deg, #FFE066, #FFD000); color: #7B5000; }
   .bm-btn-del { background: #FFE8ED; color: #FF4D6D; flex: none; padding: 7px 10px; }
   .bm-btn-edit { background: #EDE4FF; color: #7B4FBF; flex: none; padding: 7px 10px; }
+  .bm-btn-note { background: #E8F5E9; color: #2E7D32; flex: none; padding: 7px 10px; }
   .bm-platform-badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
   .bm-cat-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
 
@@ -260,7 +261,24 @@
 
   <!-- 收藏 -->
   <div class="section" id="section-bookmarks">
-    <div class="section-title"><span>📌</span> 我的收藏</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="section-title" style="margin:0"><span>📌</span> 我的收藏</div>
+      <button class="btn btn-secondary" id="batch-toggle-btn" style="flex:none;padding:8px 12px;font-size:12px;min-width:auto" onclick="toggleBatchMode()">☑️ 批次刪除</button>
+    </div>
+    <!-- Search bar -->
+    <div style="position:relative;margin-bottom:12px">
+      <input id="bookmark-search" class="input" style="margin:0;padding-left:40px" placeholder="🔍 搜尋收藏..." oninput="searchBookmarks(this.value)" />
+      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none">🔍</span>
+      <button id="search-clear" onclick="clearSearch()" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:none;font-size:18px;cursor:pointer;color:#ccc">✕</button>
+    </div>
+    <!-- Batch delete bar -->
+    <div id="batch-bar" style="display:none;background:#FFE8ED;border-radius:14px;padding:10px 14px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between">
+      <span id="batch-count" style="font-size:13px;font-weight:700;color:#FF4D6D">已選 0 筆</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" style="flex:none;padding:8px 12px;font-size:12px;min-width:auto" onclick="selectAllBookmarks()">全選</button>
+        <button class="btn btn-danger" style="flex:none;padding:8px 12px;font-size:12px;min-width:auto" onclick="deleteBatchBookmarks()">🗑️ 刪除所選</button>
+      </div>
+    </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
       <div class="filter-tabs" id="category-tabs" style="margin-bottom:0;flex:1">
         <button class="filter-tab active" onclick="filterBookmarks('全部', this)">全部</button>
@@ -305,6 +323,33 @@
     <div id="files-list"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
   </div>
 
+</div>
+
+<!-- Edit Bookmark Note Modal -->
+<div class="modal-overlay" id="editNoteModal" onclick="closeEditNoteModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📝 編輯備註</div>
+    <input class="input" id="editNoteInput" placeholder="輸入備註..." />
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary" onclick="document.getElementById('editNoteModal').classList.remove('show')">取消</button>
+      <button class="btn btn-primary" onclick="submitEditNote()">儲存 ✨</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Todo Modal -->
+<div class="modal-overlay" id="editTodoModal" onclick="closeEditTodoModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ 編輯待辦</div>
+    <input class="input" id="editTodoContent" placeholder="待辦內容..." />
+    <input class="input" id="editTodoRemind" type="datetime-local" />
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary" onclick="document.getElementById('editTodoModal').classList.remove('show')">取消</button>
+      <button class="btn btn-primary" onclick="submitEditTodo()">儲存 🎀</button>
+    </div>
+  </div>
 </div>
 
 <!-- Edit Bookmark Category Modal -->
@@ -615,19 +660,28 @@ function renderBookmarks() {
     const catBg   = catColorMap[b.category] || '#F0EDED';
     const catText = catTextMap[b.category]  || '#888';
     const title = (b.note && b.note !== b.url) ? b.note : (ogTitleCache[b.url] || b.title || b.url);
-    return '<div class="bm-grid-card fade-in">' +
+    const isSelected = batchSelected.has(b.id);
+    const checkHtml = batchMode
+      ? '<div onclick="toggleBatchSelect(\'' + escAttr(b.id) + '\',event)" style="position:absolute;top:8px;left:8px;width:24px;height:24px;border-radius:50%;border:2px solid white;background:' + (isSelected ? '#FF4D6D' : 'rgba(0,0,0,0.3)') + ';display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:700;z-index:10;cursor:pointer">' + (isSelected ? '✓' : '') + '</div>'
+      : '';
+    return '<div class="bm-grid-card fade-in" style="' + (isSelected ? 'outline:2px solid #FF4D6D;' : '') + '">' +
+      checkHtml +
       thumbHtml +
-      '<span class="bm-platform-badge">' + escHtml(b.platform || 'Link') + '</span>' +
-      '<span class="bm-cat-badge" style="background:' + catBg + ';color:' + catText + '">' + escHtml(b.category || '未分類') + '</span>' +
+      (batchMode ? '' : '<span class="bm-platform-badge">' + escHtml(b.platform || 'Link') + '</span>') +
+      '<span class="bm-cat-badge" style="background:' + catBg + ';color:' + catText + (batchMode ? ';left:8px;right:auto' : '') + '">' + escHtml(b.category || '未分類') + '</span>' +
       '<div class="bm-info">' +
         '<div class="bm-title">' + escHtml(title) + '</div>' +
         '<div class="bm-date">' + String(b.createdAt || '').substring(0,10) + '</div>' +
       '</div>' +
-      '<div class="bm-actions">' +
-        '<button class="bm-btn bm-btn-open" onclick="openUrl(\'' + escAttr(b.url) + '\')">🔗 開啟</button>' +
-        '<button class="bm-btn bm-btn-edit" onclick="openEditCategory(\'' + escAttr(b.id) + '\',\'' + escAttr(b.category) + '\')">✏️</button>' +
-        '<button class="bm-btn bm-btn-del" onclick="deleteBookmark(\'' + escAttr(b.id) + '\')">🗑️</button>' +
-      '</div>' +
+      (batchMode
+        ? '<div class="bm-actions"><button class="bm-btn bm-btn-open" onclick="openUrl(\'' + escAttr(b.url) + '\')">🔗 開啟</button></div>'
+        : '<div class="bm-actions">' +
+            '<button class="bm-btn bm-btn-open" onclick="openUrl(\'' + escAttr(b.url) + '\')">🔗 開啟</button>' +
+            '<button class="bm-btn bm-btn-note" onclick="openEditNote(\'' + escAttr(b.id) + '\',\'' + escAttr(b.note || '') + '\')">📝</button>' +
+            '<button class="bm-btn bm-btn-edit" onclick="openEditCategory(\'' + escAttr(b.id) + '\',\'' + escAttr(b.category) + '\')">✏️</button>' +
+            '<button class="bm-btn bm-btn-del" onclick="deleteBookmark(\'' + escAttr(b.id) + '\')">🗑️</button>' +
+          '</div>'
+      ) +
     '</div>';
   }).join('') + '</div>';
 }
@@ -676,6 +730,7 @@ function renderTodos() {
       '</div>' +
       (!isDone ? '<div class="card-actions" style="margin-top:12px">' +
         '<button class="btn btn-success" onclick="completeTodo(\'' + escAttr(t.todoId) + '\')">✅ 完成</button>' +
+        '<button class="btn btn-secondary" onclick="openEditTodo(\'' + escAttr(t.todoId) + '\',\'' + escAttr(t.content) + '\',\'' + escAttr(t.remindAt||'') + '\')">✏️ 編輯</button>' +
         '<button class="btn btn-danger" onclick="deleteTodo(\'' + escAttr(t.todoId) + '\')">🗑️ 刪除</button>' +
       '</div>' : '') +
     '</div></div>';
@@ -825,7 +880,10 @@ function renderFiles() {
         '<div class="file-grid-name">' + escHtml(f.fileName || '') + '</div>' +
         '<div class="file-grid-meta">' + String(f.fileType||'').toUpperCase() + ' · ' + formatSize(f.size) + '<br>' + String(f.createdAt||'').substring(0,10) + '</div>' +
       '</div>' +
-      '<button class="file-grid-btn" onclick="openUrl(\'' + escAttr(f.driveUrl) + '\')">☁️ Google Drive</button>' +
+      '<div style="display:flex;gap:6px;padding:0 8px 8px">' +
+        '<button class="file-grid-btn" style="flex:1;margin:0" onclick="openUrl(\'' + escAttr(f.driveUrl) + '\')">☁️ Drive</button>' +
+        '<button onclick="deleteFile(\'' + escAttr(f.id) + '\')" style="border:none;border-radius:10px;padding:8px 12px;background:#FFE8ED;color:#FF4D6D;font-size:14px;cursor:pointer;font-weight:700">🗑️</button>' +
+      '</div>' +
     '</div>';
   }).join('') + '</div>';
 }
@@ -872,6 +930,214 @@ function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
   return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+// ============================================================
+// Batch Delete
+// ============================================================
+let batchMode = false;
+let batchSelected = new Set();
+
+function toggleBatchMode() {
+  batchMode = !batchMode;
+  batchSelected.clear();
+  const btn = document.getElementById('batch-toggle-btn');
+  const bar = document.getElementById('batch-bar');
+  if (batchMode) {
+    btn.textContent = '✕ 取消批次';
+    btn.style.background = '#FFE8ED';
+    btn.style.color = '#FF4D6D';
+    bar.style.display = 'flex';
+  } else {
+    btn.textContent = '☑️ 批次刪除';
+    btn.style.background = '';
+    btn.style.color = '';
+    bar.style.display = 'none';
+  }
+  renderBookmarks();
+}
+
+function toggleBatchSelect(id, e) {
+  e.stopPropagation();
+  if (batchSelected.has(id)) batchSelected.delete(id);
+  else batchSelected.add(id);
+  document.getElementById('batch-count').textContent = '已選 ' + batchSelected.size + ' 筆';
+  renderBookmarks();
+}
+
+function selectAllBookmarks() {
+  let items = allBookmarks;
+  if (currentBookmarkFilter !== '全部') {
+    items = items.filter(function(b) { return b.category === currentBookmarkFilter; });
+  }
+  const searchVal = document.getElementById('bookmark-search').value.trim().toLowerCase();
+  if (searchVal) items = items.filter(function(b) {
+    return (b.note||'').toLowerCase().includes(searchVal) || (b.url||'').toLowerCase().includes(searchVal) || (b.category||'').toLowerCase().includes(searchVal);
+  });
+  items.forEach(function(b) { batchSelected.add(b.id); });
+  document.getElementById('batch-count').textContent = '已選 ' + batchSelected.size + ' 筆';
+  renderBookmarks();
+}
+
+async function deleteBatchBookmarks() {
+  if (!batchSelected.size) { showToast('請先選擇要刪除的項目'); return; }
+  const ids = Array.from(batchSelected);
+  let success = 0;
+  for (const id of ids) {
+    try {
+      const res = await fetch(API_BASE + '/bookmarks?userId=' + userId + '&id=' + encodeURIComponent(id), { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) success++;
+    } catch(e) {}
+  }
+  showToast('🗑️ 已刪除 ' + success + ' 筆！');
+  batchSelected.clear();
+  batchMode = false;
+  const btn = document.getElementById('batch-toggle-btn');
+  btn.textContent = '☑️ 批次刪除';
+  btn.style.background = '';
+  btn.style.color = '';
+  document.getElementById('batch-bar').style.display = 'none';
+  loadBookmarks();
+}
+
+// ============================================================
+// Search Bookmarks
+// ============================================================
+let searchTimer = null;
+function searchBookmarks(val) {
+  const clearBtn = document.getElementById('search-clear');
+  clearBtn.style.display = val ? 'block' : 'none';
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function() { renderBookmarksFiltered(val); }, 200);
+}
+
+function clearSearch() {
+  document.getElementById('bookmark-search').value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  renderBookmarks();
+}
+
+function renderBookmarksFiltered(keyword) {
+  const list = document.getElementById('bookmarks-list');
+  keyword = (keyword || '').toLowerCase().trim();
+  let items = allBookmarks;
+  if (currentBookmarkFilter !== '全部') items = items.filter(function(b) { return b.category === currentBookmarkFilter; });
+  if (keyword) {
+    items = items.filter(function(b) {
+      return (b.note||'').toLowerCase().includes(keyword) ||
+             (b.url||'').toLowerCase().includes(keyword) ||
+             (b.category||'').toLowerCase().includes(keyword) ||
+             (b.tags||'').toLowerCase().includes(keyword) ||
+             (ogTitleCache[b.url]||'').toLowerCase().includes(keyword);
+    });
+  }
+  if (!items.length) { list.innerHTML = renderEmpty('🔍', '找不到「' + keyword + '」', '試試其他關鍵字'); return; }
+
+  const catColorMap = {'個人':'#FFE8ED','工作':'#E0F7EF','家庭':'#EDE4FF','未分類':'#F0EDED'};
+  const catTextMap  = {'個人':'#FF6B8A','工作':'#3DAA7F','家庭':'#7B4FBF','未分類':'#888'};
+  list.innerHTML = '<div class="grid-list">' + items.slice(0, 30).map(function(b) {
+    const ogImg = ogCache[b.url];
+    const thumbHtml = ogImg
+      ? '<img class="bm-thumb" src="' + escAttr(ogImg) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
+        '<div class="bm-thumb-placeholder" style="display:none">' + getPlatformEmoji(b.platform) + '</div>'
+      : '<div class="bm-thumb-placeholder">' + getPlatformEmoji(b.platform) + '</div>';
+    const catBg = catColorMap[b.category] || '#F0EDED';
+    const catText = catTextMap[b.category] || '#888';
+    const title = (b.note && b.note !== b.url) ? b.note : (ogTitleCache[b.url] || b.url);
+    return '<div class="bm-grid-card fade-in">' +
+      thumbHtml +
+      '<span class="bm-platform-badge">' + escHtml(b.platform || 'Link') + '</span>' +
+      '<span class="bm-cat-badge" style="background:' + catBg + ';color:' + catText + '">' + escHtml(b.category || '未分類') + '</span>' +
+      '<div class="bm-info"><div class="bm-title">' + escHtml(title) + '</div><div class="bm-date">' + String(b.createdAt||'').substring(0,10) + '</div></div>' +
+      '<div class="bm-actions">' +
+        '<button class="bm-btn bm-btn-open" onclick="openUrl(\'' + escAttr(b.url) + '\')">🔗 開啟</button>' +
+        '<button class="bm-btn bm-btn-note" onclick="openEditNote(\'' + escAttr(b.id) + '\',\'' + escAttr(b.note||'') + '\')">📝</button>' +
+        '<button class="bm-btn bm-btn-edit" onclick="openEditCategory(\'' + escAttr(b.id) + '\',\'' + escAttr(b.category) + '\')">✏️</button>' +
+        '<button class="bm-btn bm-btn-del" onclick="deleteBookmark(\'' + escAttr(b.id) + '\')">🗑️</button>' +
+      '</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+// ============================================================
+// Edit Note
+// ============================================================
+let editingNoteId = null;
+
+function openEditNote(id, currentNote) {
+  editingNoteId = id;
+  document.getElementById('editNoteInput').value = currentNote || '';
+  document.getElementById('editNoteModal').classList.add('show');
+}
+
+function closeEditNoteModal(e) {
+  if (e.target === document.getElementById('editNoteModal')) document.getElementById('editNoteModal').classList.remove('show');
+}
+
+async function submitEditNote() {
+  const note = document.getElementById('editNoteInput').value.trim();
+  if (!editingNoteId) return;
+  try {
+    const res = await fetch(API_BASE + '/bookmarks/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userId, id: editingNoteId, note: note })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('📝 備註已更新！');
+      document.getElementById('editNoteModal').classList.remove('show');
+      loadBookmarks();
+    } else showToast('更新失敗');
+  } catch(e) { showToast('更新失敗'); }
+}
+
+// ============================================================
+// Edit Todo
+// ============================================================
+let editingTodoId = null;
+
+function openEditTodo(todoId, content, remindAt) {
+  editingTodoId = todoId;
+  document.getElementById('editTodoContent').value = content || '';
+  document.getElementById('editTodoRemind').value = remindAt ? remindAt.replace(' ', 'T').substring(0,16) : '';
+  document.getElementById('editTodoModal').classList.add('show');
+}
+
+function closeEditTodoModal(e) {
+  if (e.target === document.getElementById('editTodoModal')) document.getElementById('editTodoModal').classList.remove('show');
+}
+
+async function submitEditTodo() {
+  const content = document.getElementById('editTodoContent').value.trim();
+  if (!content) { showToast('請輸入待辦內容 🌸'); return; }
+  const remind = document.getElementById('editTodoRemind').value;
+  try {
+    const res = await fetch(API_BASE + '/todos/' + editingTodoId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: content, remindAt: remind })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ 待辦已更新！');
+      document.getElementById('editTodoModal').classList.remove('show');
+      loadTodos();
+    } else showToast('更新失敗');
+  } catch(e) { showToast('更新失敗'); }
+}
+
+// ============================================================
+// Delete File
+// ============================================================
+async function deleteFile(fileId) {
+  try {
+    const res = await fetch(API_BASE + '/files?userId=' + userId + '&id=' + encodeURIComponent(fileId), { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) { showToast('🗑️ 已刪除檔案！'); loadFiles(); }
+    else showToast('刪除失敗');
+  } catch(e) { showToast('刪除失敗'); }
 }
 
 initLiff();
