@@ -274,19 +274,17 @@ let calSelectedDate = null;
 let calEvents = [];
 
 const ogCache = {};
+const ogTitleCache = {};
 
 async function fetchOgImage(url) {
   if (ogCache[url] !== undefined) return ogCache[url];
   try {
-    const proxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-    const res = await fetch(proxy, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(API_BASE + '/og?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
     const data = await res.json();
-    const html = data.contents || '';
-    const match = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
-                || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
-    const imgUrl = match ? match[1] : null;
-    ogCache[url] = imgUrl;
-    return imgUrl;
+    ogCache[url] = data.image || null;
+    // Also update title if we got one and bookmark has no note
+    if (data.title) ogTitleCache[url] = data.title;
+    return ogCache[url];
   } catch(e) {
     ogCache[url] = null;
     return null;
@@ -481,7 +479,7 @@ function renderBookmarks() {
       : '<div class="bm-thumb-placeholder">' + getPlatformEmoji(b.platform) + '</div>';
     const catBg   = catColorMap[b.category] || '#F0EDED';
     const catText = catTextMap[b.category]  || '#888';
-    const title   = b.note && b.note !== b.url ? b.note : (b.title || b.url);
+    const title = (b.note && b.note !== b.url) ? b.note : (ogTitleCache[b.url] || b.title || b.url);
     return '<div class="bm-grid-card fade-in">' +
       thumbHtml +
       '<span class="bm-platform-badge">' + escHtml(b.platform || 'Link') + '</span>' +
@@ -666,7 +664,7 @@ async function loadFiles() {
 
 function getDriveThumbUrl(driveFileId) {
   if (!driveFileId) return null;
-  return 'https://drive.google.com/thumbnail?id=' + driveFileId + '&sz=w400';
+  return API_BASE + '/thumb?fileId=' + encodeURIComponent(driveFileId);
 }
 
 function renderFiles() {
