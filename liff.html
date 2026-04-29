@@ -49,11 +49,33 @@
   .card-body { padding: 16px; }
   .card-accent { width: 4px; background: linear-gradient(to bottom, var(--pink), var(--lavender)); flex-shrink: 0; }
 
-  /* Bookmark card with preview image */
-  .bookmark-card { display: flex; flex-direction: column; }
-  .bookmark-preview { width: 100%; height: 160px; object-fit: cover; background: #F5F0FF; display: block; }
-  .bookmark-preview-placeholder { width: 100%; height: 100px; background: linear-gradient(135deg, #F5F0FF, #FFE8F0); display: flex; align-items: center; justify-content: center; font-size: 40px; }
-  .bookmark-inner { display: flex; }
+  /* Grid layout for bookmarks and files */
+  .grid-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Bookmark grid card */
+  .bm-grid-card { background: white; border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; position: relative; transition: all 0.2s; }
+  .bm-grid-card:active { transform: scale(0.97); }
+  .bm-thumb { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #F5F0FF; display: block; }
+  .bm-thumb-placeholder { width: 100%; aspect-ratio: 1/1; background: linear-gradient(135deg, #F5F0FF, #FFE8F0); display: flex; align-items: center; justify-content: center; font-size: 36px; }
+  .bm-info { padding: 8px 10px 10px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .bm-title { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .bm-date { font-size: 11px; color: var(--text-light); }
+  .bm-actions { display: flex; gap: 6px; padding: 0 8px 8px; }
+  .bm-btn { flex: 1; border: none; border-radius: 10px; padding: 7px 4px; font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; }
+  .bm-btn-open { background: linear-gradient(135deg, #FFE066, #FFD000); color: #7B5000; }
+  .bm-btn-del { background: #FFE8ED; color: #FF4D6D; flex: none; padding: 7px 10px; }
+  .bm-platform-badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
+  .bm-cat-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
+
+  /* File grid card */
+  .file-grid-card { background: white; border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s; }
+  .file-grid-card:active { transform: scale(0.97); }
+  .file-grid-thumb { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #F5F0FF; display: block; }
+  .file-grid-placeholder { width: 100%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+  .file-grid-info { padding: 8px 10px 10px; }
+  .file-grid-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-grid-meta { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+  .file-grid-btn { display: block; width: calc(100% - 16px); margin: 0 8px 8px; border: none; border-radius: 10px; padding: 8px; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; background: linear-gradient(135deg, #FFE066, #FFD000); color: #7B5000; text-align: center; }
 
   .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
   .card-title { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; line-height: 1.4; word-break: break-all; }
@@ -114,15 +136,7 @@
   .cal-nav-btn:hover { background: var(--pink); color: white; }
   .cal-month { font-size: 18px; font-weight: 800; }
 
-  /* File card with thumbnail */
-  .file-card { display: flex; flex-direction: column; }
-  .file-thumb { width: 100%; height: 180px; object-fit: cover; background: #F5F0FF; display: block; }
-  .file-thumb-placeholder { width: 100%; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
-  .file-inner { display: flex; align-items: center; gap: 14px; }
-  .file-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
-  .file-info { flex: 1; min-width: 0; }
-  .file-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .file-meta { font-size: 12px; color: var(--text-light); margin-top: 3px; }
+
 
   .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: white; padding: 12px 24px; border-radius: 20px; font-size: 14px; font-weight: 700; z-index: 1000; transition: transform 0.3s ease; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
   .toast.show { transform: translateX(-50%) translateY(0); }
@@ -166,12 +180,11 @@
   <!-- 收藏 -->
   <div class="section active" id="section-bookmarks">
     <div class="section-title"><span>📌</span> 我的收藏</div>
-    <div class="filter-tabs">
-      <button class="filter-tab active" onclick="filterBookmarks('全部', this)">全部</button>
-      <button class="filter-tab" onclick="filterBookmarks('個人', this)">👤 個人</button>
-      <button class="filter-tab" onclick="filterBookmarks('工作', this)">💼 工作</button>
-      <button class="filter-tab" onclick="filterBookmarks('家庭', this)">🏠 家庭</button>
-      <button class="filter-tab" onclick="filterBookmarks('未分類', this)">📋 未分類</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <div class="filter-tabs" id="category-tabs" style="margin-bottom:0;flex:1">
+        <button class="filter-tab active" onclick="filterBookmarks('全部', this)">全部</button>
+      </div>
+      <button class="btn btn-secondary" style="flex:none;padding:8px 12px;font-size:12px;min-width:auto" onclick="openCategoryModal()">⚙️ 管理分類</button>
     </div>
     <div id="bookmarks-list"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
   </div>
@@ -213,6 +226,21 @@
 
 </div>
 
+<!-- Category Management Modal -->
+<div class="modal-overlay" id="categoryModal" onclick="closeCategoryModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏷️ 管理收藏分類</div>
+    <div id="category-list-modal" style="margin-bottom:16px"></div>
+    <div style="display:flex;gap:8px">
+      <input class="input" id="newCategoryInput" placeholder="輸入新分類名稱..." style="margin:0;flex:1" />
+      <button class="btn btn-primary" style="flex:none;padding:10px 16px" onclick="addCategory()">新增</button>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--text-light)">※ 預設分類（個人、工作、家庭、未分類）無法刪除</div>
+    <button class="btn btn-secondary" style="margin-top:16px;width:100%" onclick="document.getElementById('categoryModal').classList.remove('show')">關閉</button>
+  </div>
+</div>
+
 <!-- Add Todo Modal -->
 <div class="modal-overlay" id="addTodoModal" onclick="closeModal(event)">
   <div class="modal">
@@ -245,13 +273,11 @@ let calMonth = new Date().getMonth();
 let calSelectedDate = null;
 let calEvents = [];
 
-// OG image cache
 const ogCache = {};
 
 async function fetchOgImage(url) {
   if (ogCache[url] !== undefined) return ogCache[url];
   try {
-    // Use allorigins proxy to fetch OG image
     const proxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
     const res = await fetch(proxy, { signal: AbortSignal.timeout(5000) });
     const data = await res.json();
@@ -280,9 +306,21 @@ async function initLiff() {
     userId = 'demo';
   }
   loadBookmarks();
+  loadCategories();
   loadTodos();
   loadFiles();
   renderCalendar();
+
+  // 讀取 URL 參數自動切換頁籤
+  const urlParams = new URLSearchParams(window.location.search);
+  const initPage = urlParams.get('page');
+  if (initPage) {
+    const tabMap = { 'bookmarks': 0, 'todos': 1, 'calendar': 2, 'files': 3 };
+    const navBtns = document.querySelectorAll('.nav-btn');
+    if (tabMap[initPage] !== undefined) {
+      switchTab(initPage, navBtns[tabMap[initPage]]);
+    }
+  }
 }
 
 function switchTab(tab, btn) {
@@ -304,13 +342,104 @@ function showToast(msg) {
 // Bookmarks
 // ============================================================
 
+let allCategories = [];
+
+async function loadCategories() {
+  try {
+    const res = await fetch(API_BASE + '/categories?userId=' + userId);
+    const data = await res.json();
+    allCategories = data.categories || ['個人','工作','家庭','未分類'];
+  } catch(e) {
+    allCategories = ['個人','工作','家庭','未分類'];
+  }
+  renderCategoryTabs();
+}
+
+function renderCategoryTabs() {
+  const container = document.getElementById('category-tabs');
+  const isActive = currentBookmarkFilter;
+  container.innerHTML = ['全部', ...allCategories.filter(function(c){ return c !== '全部'; })].map(function(cat) {
+    const active = cat === isActive ? ' active' : '';
+    return '<button class="filter-tab' + active + '" onclick="filterBookmarks(\'' + escAttr(cat) + '\', this)">' + escHtml(cat) + '</button>';
+  }).join('');
+}
+
+function openCategoryModal() {
+  renderCategoryModalList();
+  document.getElementById('categoryModal').classList.add('show');
+}
+
+function closeCategoryModal(e) {
+  if (e.target === document.getElementById('categoryModal')) {
+    document.getElementById('categoryModal').classList.remove('show');
+  }
+}
+
+const DEFAULT_CATS = ['個人','工作','家庭','未分類'];
+
+function renderCategoryModalList() {
+  const el = document.getElementById('category-list-modal');
+  if (!allCategories.length) { el.innerHTML = '<div style="color:var(--text-light);font-size:13px">尚無分類</div>'; return; }
+  el.innerHTML = allCategories.map(function(cat) {
+    const isDefault = DEFAULT_CATS.includes(cat);
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F5F0FF">' +
+      '<span style="font-size:14px;font-weight:600">' + escHtml(cat) + (isDefault ? ' <span style="font-size:11px;color:var(--text-light)">(預設)</span>' : '') + '</span>' +
+      (!isDefault ? '<button class="btn btn-danger" style="flex:none;padding:6px 12px;font-size:12px;min-width:auto" onclick="deleteCategory(\'' + escAttr(cat) + '\')">刪除</button>' : '<span style="font-size:12px;color:#CCC">🔒</span>') +
+    '</div>';
+  }).join('');
+}
+
+async function addCategory() {
+  const input = document.getElementById('newCategoryInput');
+  const name = input.value.trim();
+  if (!name) { showToast('請輸入分類名稱 🌸'); return; }
+  try {
+    const res = await fetch(API_BASE + '/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userId, name: name })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✨ 分類已新增！');
+      input.value = '';
+      await loadCategories();
+      renderCategoryModalList();
+    } else {
+      showToast(data.error === 'Category already exists' ? '分類已存在' : '新增失敗');
+    }
+  } catch(e) { showToast('新增失敗，請稍後再試'); }
+}
+
+async function deleteCategory(name) {
+  try {
+    const res = await fetch(API_BASE + '/categories?userId=' + userId + '&name=' + encodeURIComponent(name), { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('🗑️ 分類已刪除！');
+      if (currentBookmarkFilter === name) currentBookmarkFilter = '全部';
+      await loadCategories();
+      renderCategoryModalList();
+      renderBookmarks();
+    } else { showToast('刪除失敗'); }
+  } catch(e) { showToast('刪除失敗'); }
+}
+
+async function deleteBookmark(id) {
+  try {
+    const res = await fetch(API_BASE + '/bookmarks?userId=' + userId + '&id=' + encodeURIComponent(id), { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) { showToast('🗑️ 已刪除收藏！'); loadBookmarks(); }
+    else showToast('刪除失敗');
+  } catch(e) { showToast('刪除失敗'); }
+}
+
 async function loadBookmarks() {
   try {
     const res = await fetch(API_BASE + '/bookmarks?userId=' + userId);
     const data = await res.json();
     allBookmarks = data.bookmarks || [];
     renderBookmarks();
-    // Load OG images in background
     loadOgImages();
   } catch(e) {
     document.getElementById('bookmarks-list').innerHTML = renderEmpty('📭', '載入失敗', '請稍後再試');
@@ -320,9 +449,7 @@ async function loadBookmarks() {
 async function loadOgImages() {
   for (let i = 0; i < Math.min(allBookmarks.length, 10); i++) {
     const b = allBookmarks[i];
-    if (b.url) {
-      await fetchOgImage(b.url);
-    }
+    if (b.url) { await fetchOgImage(b.url); }
   }
   renderBookmarks();
 }
@@ -344,37 +471,31 @@ function renderBookmarks() {
     list.innerHTML = renderEmpty('🔖', '這裡還沒有收藏', '貼上連結就會自動收藏喔！');
     return;
   }
-
-  list.innerHTML = items.slice(0, 30).map(function(b) {
-    const catColor = {'個人':'badge-pink','工作':'badge-mint','家庭':'badge-lavender','未分類':'badge-gray'}[b.category] || 'badge-gray';
-    const platformColor = getPlatformColor(b.platform);
+  const catColorMap = {'個人':'#FFE8ED','工作':'#E0F7EF','家庭':'#EDE4FF','未分類':'#F0EDED'};
+  const catTextMap  = {'個人':'#FF6B8A','工作':'#3DAA7F','家庭':'#7B4FBF','未分類':'#888'};
+  list.innerHTML = '<div class="grid-list">' + items.slice(0, 30).map(function(b) {
     const ogImg = ogCache[b.url];
-    const imgHtml = ogImg
-      ? '<img class="bookmark-preview" src="' + escAttr(ogImg) + '" onerror="this.style.display=\'none\'" loading="lazy">'
-      : '<div class="bookmark-preview-placeholder">' + getPlatformEmoji(b.platform) + '</div>';
-
-    return '<div class="card bookmark-card fade-in">' +
-      imgHtml +
-      '<div class="bookmark-inner">' +
-        '<div class="card-accent"></div>' +
-        '<div class="card-body" style="flex:1">' +
-          '<div class="card-header">' +
-            '<div class="card-title">' + escHtml(b.note || b.url) + '</div>' +
-            '<span class="badge ' + catColor + '">' + escHtml(b.category || '未分類') + '</span>' +
-          '</div>' +
-          '<div class="card-meta">' +
-            '<span style="background:' + platformColor + '22;color:' + platformColor + ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">' + escHtml(b.platform || 'Link') + '</span>' +
-            '<span>📅 ' + String(b.createdAt || '').substring(0,10) + '</span>' +
-            (b.tags ? '<span>🏷️ ' + escHtml(b.tags) + '</span>' : '') +
-          '</div>' +
-          '<div class="card-actions">' +
-            '<button class="btn btn-link" onclick="openUrl(\'' + escAttr(b.url) + '\')">🔗 開啟連結</button>' +
-            '<button class="btn btn-secondary" onclick="copyUrl(\'' + escAttr(b.url) + '\')">複製</button>' +
-          '</div>' +
-        '</div>' +
+    const thumbHtml = ogImg
+      ? '<img class="bm-thumb" src="' + escAttr(ogImg) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
+        '<div class="bm-thumb-placeholder" style="display:none">' + getPlatformEmoji(b.platform) + '</div>'
+      : '<div class="bm-thumb-placeholder">' + getPlatformEmoji(b.platform) + '</div>';
+    const catBg   = catColorMap[b.category] || '#F0EDED';
+    const catText = catTextMap[b.category]  || '#888';
+    const title   = b.note && b.note !== b.url ? b.note : (b.title || b.url);
+    return '<div class="bm-grid-card fade-in">' +
+      thumbHtml +
+      '<span class="bm-platform-badge">' + escHtml(b.platform || 'Link') + '</span>' +
+      '<span class="bm-cat-badge" style="background:' + catBg + ';color:' + catText + '">' + escHtml(b.category || '未分類') + '</span>' +
+      '<div class="bm-info">' +
+        '<div class="bm-title">' + escHtml(title) + '</div>' +
+        '<div class="bm-date">' + String(b.createdAt || '').substring(0,10) + '</div>' +
+      '</div>' +
+      '<div class="bm-actions">' +
+        '<button class="bm-btn bm-btn-open" onclick="openUrl(\'' + escAttr(b.url) + '\')">🔗 開啟</button>' +
+        '<button class="bm-btn bm-btn-del" onclick="deleteBookmark(\'' + escAttr(b.id) + '\')">🗑️</button>' +
       '</div>' +
     '</div>';
-  }).join('');
+  }).join('') + '</div>';
 }
 
 // ============================================================
@@ -552,36 +673,27 @@ function renderFiles() {
   const list = document.getElementById('files-list');
   if (!allFiles.length) { list.innerHTML = renderEmpty('📂', '還沒有備份檔案', '傳送圖片或檔案就會自動備份！'); return; }
 
-  const icons = { image:'🖼️', pdf:'📄', excel:'📊', word:'📝', video:'🎬', audio:'🎵', other:'📁' };
+  const icons  = { image:'🖼️', pdf:'📄', excel:'📊', word:'📝', video:'🎬', audio:'🎵', other:'📁' };
   const colors = { image:'#FFE8ED', pdf:'#FFE8D6', excel:'#E0F7EF', word:'#E8EEFF', video:'#EDE4FF', audio:'#FFF5D6', other:'#F0EDED' };
 
-  list.innerHTML = allFiles.slice(0, 30).map(function(f) {
-    const icon = icons[f.fileType] || '📁';
-    const bg = colors[f.fileType] || '#F0EDED';
+  list.innerHTML = '<div class="grid-list">' + allFiles.slice(0, 30).map(function(f) {
+    const icon   = icons[f.fileType]  || '📁';
+    const bg     = colors[f.fileType] || '#F0EDED';
     const isImage = f.fileType === 'image' || f.fileType === 'video';
     const thumbUrl = isImage ? getDriveThumbUrl(f.driveFileId) : null;
-
     const thumbHtml = thumbUrl
-      ? '<img class="file-thumb" src="' + escAttr(thumbUrl) + '" loading="lazy" onerror="this.parentNode.querySelector(\'.file-thumb-placeholder\').style.display=\'flex\';this.style.display=\'none\'">' +
-        '<div class="file-thumb-placeholder" style="display:none;background:' + bg + '">' + icon + '</div>'
-      : '<div class="file-thumb-placeholder" style="background:' + bg + '">' + icon + '</div>';
-
-    return '<div class="card file-card fade-in">' +
+      ? '<img class="file-grid-thumb" src="' + escAttr(thumbUrl) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
+        '<div class="file-grid-placeholder" style="display:none;background:' + bg + '">' + icon + '</div>'
+      : '<div class="file-grid-placeholder" style="background:' + bg + '">' + icon + '</div>';
+    return '<div class="file-grid-card fade-in">' +
       thumbHtml +
-      '<div class="card-body">' +
-        '<div class="file-inner">' +
-          '<div class="file-icon" style="background:' + bg + '">' + icon + '</div>' +
-          '<div class="file-info">' +
-            '<div class="file-name">' + escHtml(f.fileName||'') + '</div>' +
-            '<div class="file-meta">' + String(f.fileType||'').toUpperCase() + ' · ' + formatSize(f.size) + ' · ' + String(f.createdAt||'').substring(0,10) + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="card-actions" style="margin-top:12px">' +
-          '<button class="btn btn-link" onclick="openUrl(\'' + escAttr(f.driveUrl) + '\')">☁️ Google Drive</button>' +
-        '</div>' +
+      '<div class="file-grid-info">' +
+        '<div class="file-grid-name">' + escHtml(f.fileName || '') + '</div>' +
+        '<div class="file-grid-meta">' + String(f.fileType||'').toUpperCase() + ' · ' + formatSize(f.size) + '<br>' + String(f.createdAt||'').substring(0,10) + '</div>' +
       '</div>' +
+      '<button class="file-grid-btn" onclick="openUrl(\'' + escAttr(f.driveUrl) + '\')">☁️ Google Drive</button>' +
     '</div>';
-  }).join('');
+  }).join('') + '</div>';
 }
 
 // ============================================================
