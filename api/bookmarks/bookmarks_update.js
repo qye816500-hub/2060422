@@ -26,9 +26,12 @@ module.exports = async function(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "PATCH") return res.status(405).json({ error: "Method not allowed" });
 
-  const { userId, id, category } = req.body || {};
-  if (!userId || !id || !category) {
-    return res.status(400).json({ error: "Missing userId, id or category" });
+  const { userId, id, category, note } = req.body || {};
+  if (!userId || !id) {
+    return res.status(400).json({ error: "Missing userId or id" });
+  }
+  if (!category && note === undefined) {
+    return res.status(400).json({ error: "Missing category or note" });
   }
 
   try {
@@ -52,15 +55,13 @@ module.exports = async function(req, res) {
     }
 
     const now = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
+    const updateData = [{ range: SHEET_NAME + "!J" + targetRow, values: [[now]] }];
+    if (category) updateData.push({ range: SHEET_NAME + "!G" + targetRow, values: [[category]] });
+    if (note !== undefined) updateData.push({ range: SHEET_NAME + "!E" + targetRow, values: [[note]] });
+
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SHEETS_ID,
-      requestBody: {
-        valueInputOption: "RAW",
-        data: [
-          { range: SHEET_NAME + "!G" + targetRow, values: [[category]] },
-          { range: SHEET_NAME + "!J" + targetRow, values: [[now]] },
-        ],
-      },
+      requestBody: { valueInputOption: "RAW", data: updateData },
     });
 
     return res.status(200).json({ success: true });
