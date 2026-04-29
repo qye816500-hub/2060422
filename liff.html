@@ -64,6 +64,7 @@
   .bm-btn { flex: 1; border: none; border-radius: 10px; padding: 7px 4px; font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; }
   .bm-btn-open { background: linear-gradient(135deg, #FFE066, #FFD000); color: #7B5000; }
   .bm-btn-del { background: #FFE8ED; color: #FF4D6D; flex: none; padding: 7px 10px; }
+  .bm-btn-edit { background: #EDE4FF; color: #7B4FBF; flex: none; padding: 7px 10px; }
   .bm-platform-badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
   .bm-cat-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
 
@@ -306,6 +307,16 @@
 
 </div>
 
+<!-- Edit Bookmark Category Modal -->
+<div class="modal-overlay" id="editCategoryModal" onclick="closeEditCategoryModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ 修改收藏分類</div>
+    <div id="edit-category-options" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+    <button class="btn btn-secondary" style="width:100%" onclick="document.getElementById('editCategoryModal').classList.remove('show')">取消</button>
+  </div>
+</div>
+
 <!-- Category Management Modal -->
 <div class="modal-overlay" id="categoryModal" onclick="closeCategoryModal(event)">
   <div class="modal">
@@ -510,6 +521,43 @@ async function deleteCategory(name) {
   } catch(e) { showToast('刪除失敗'); }
 }
 
+let editingBookmarkId = null;
+
+function openEditCategory(id, currentCat) {
+  editingBookmarkId = id;
+  const el = document.getElementById('edit-category-options');
+  el.innerHTML = allCategories.map(function(cat) {
+    const isActive = cat === currentCat;
+    return '<button onclick="applyEditCategory(\'' + escAttr(cat) + '\')" style="padding:10px 18px;border-radius:20px;border:2px solid ' + (isActive ? 'var(--lavender-deep)' : '#EDE4FF') + ';background:' + (isActive ? 'linear-gradient(135deg,var(--pink),var(--lavender))' : 'white') + ';color:' + (isActive ? 'white' : 'var(--brown)') + ';font-family:Nunito,sans-serif;font-size:13px;font-weight:700;cursor:pointer">' + escHtml(cat) + (isActive ? ' ✓' : '') + '</button>';
+  }).join('');
+  document.getElementById('editCategoryModal').classList.add('show');
+}
+
+function closeEditCategoryModal(e) {
+  if (e.target === document.getElementById('editCategoryModal')) {
+    document.getElementById('editCategoryModal').classList.remove('show');
+  }
+}
+
+async function applyEditCategory(category) {
+  if (!editingBookmarkId) return;
+  try {
+    const res = await fetch(API_BASE + '/bookmarks/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userId, id: editingBookmarkId, category: category })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✨ 分類已更新為「' + category + '」！');
+      document.getElementById('editCategoryModal').classList.remove('show');
+      loadBookmarks();
+    } else {
+      showToast('更新失敗');
+    }
+  } catch(e) { showToast('更新失敗'); }
+}
+
 async function deleteBookmark(id) {
   try {
     const res = await fetch(API_BASE + '/bookmarks?userId=' + userId + '&id=' + encodeURIComponent(id), { method: 'DELETE' });
@@ -577,6 +625,7 @@ function renderBookmarks() {
       '</div>' +
       '<div class="bm-actions">' +
         '<button class="bm-btn bm-btn-open" onclick="openUrl(\'' + escAttr(b.url) + '\')">🔗 開啟</button>' +
+        '<button class="bm-btn bm-btn-edit" onclick="openEditCategory(\'' + escAttr(b.id) + '\',\'' + escAttr(b.category) + '\')">✏️</button>' +
         '<button class="bm-btn bm-btn-del" onclick="deleteBookmark(\'' + escAttr(b.id) + '\')">🗑️</button>' +
       '</div>' +
     '</div>';
