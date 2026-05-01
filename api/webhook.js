@@ -1017,8 +1017,19 @@ async function handleCalendar(replyToken, text, userId, calendar, sheets) {
     const event = await createCalendarEvent(calendar, parsed);
     const id = generateId("C");
     const now = formatDateTime(new Date());
-    const row = [id, parsed.title, formatDate(parsed.start), parsed.isAllDay ? "" : formatTime(parsed.start), parsed.isAllDay ? "TRUE" : "FALSE", event.id, text, "text", userId, now];
-    await appendRow(sheets, SHEET.CALENDAR, row);
+
+    // 存到日曆待辦 Sheet
+    const calRow = [id, parsed.title, formatDate(parsed.start), parsed.isAllDay ? "" : formatTime(parsed.start), parsed.isAllDay ? "TRUE" : "FALSE", event.id, text, "text", userId, now];
+    await appendRow(sheets, SHEET.CALENDAR, calRow);
+
+    // ★ 同步存到待辦清單 Sheet（讓 LIFF 看得到）
+    const remindText = parsed.isAllDay
+      ? formatDate(parsed.start)
+      : formatDate(parsed.start) + " " + formatTime(parsed.start);
+    const todoId = generateId("TD");
+    const todoRow = [todoId, parsed.title, "pending", now, remindText, userId, "todo", event.id];
+    await appendRow(sheets, SHEET.TODOS, todoRow);
+
     await replyFlex(replyToken, buildCalendarFlex(parsed, event));
   } catch (err) {
     console.error("Calendar error:", err);
