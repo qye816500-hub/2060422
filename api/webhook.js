@@ -1089,14 +1089,7 @@ function buildMainMenuFlex() {
         type: "box",
         layout: "vertical",
         paddingAll: "20px",
-        background: {
-          type: "linearGradient",
-          angle: "135deg",
-          stops: [
-            { color: "#FFB7C5", offset: "0%" },
-            { color: "#C5A8E8", offset: "100%" },
-          ],
-        },
+        backgroundColor: "#FFB7C5",
         contents: [
           {
             type: "box", layout: "horizontal", contents: [
