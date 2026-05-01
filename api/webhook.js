@@ -1081,44 +1081,74 @@ function buildCalendarFlex(parsed, event) {
 function buildMainMenuFlex() {
   return {
     type: "flex",
-    altText: "你好！我可以幫你做這些事",
+    altText: "🎀 EE 小助理，我可以幫你做這些事！",
     contents: {
-      type: "bubble", size: "mega",
-      styles: { header: { backgroundColor: "#1A1A2E" } },
+      type: "bubble",
+      size: "mega",
       header: {
-        type: "box", layout: "vertical", paddingAll: "20px",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "20px",
+        background: {
+          type: "linearGradient",
+          angle: "135deg",
+          stops: [
+            { color: "#FFB7C5", offset: "0%" },
+            { color: "#C5A8E8", offset: "100%" },
+          ],
+        },
         contents: [
-          { type: "text", text: "你好！我可以幫你做這些事", color: "#FFFFFF", weight: "bold", size: "md" },
-          { type: "text", text: "選擇功能或直接輸入", color: "#FFFFFF88", size: "xs" },
+          {
+            type: "box", layout: "horizontal", contents: [
+              { type: "text", text: "🎀", size: "xl", flex: 0 },
+              {
+                type: "box", layout: "vertical", flex: 1, paddingStart: "10px",
+                contents: [
+                  { type: "text", text: "EE 小助理", color: "#FFFFFF", weight: "bold", size: "lg" },
+                  { type: "text", text: "你好！選擇功能或直接輸入 ✨", color: "#FFFFFFCC", size: "xs" },
+                ],
+              },
+            ],
+          },
         ],
       },
       body: {
-        type: "box", layout: "vertical", paddingAll: "16px", spacing: "lg",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        spacing: "sm",
+        backgroundColor: "#FFF9FB",
         contents: [
-          menuItem("[LINK]", "貼連結收藏", "任意網址自動收藏，可直接分類"),
-          { type: "separator" },
-          menuItem("[LIST]", "待辦清單", "查看、新增、完成、刪除待辦"),
-          { type: "separator" },
-          menuItem("[FILE]", "傳圖片/檔案", "自動備份到 Google Drive"),
-          { type: "separator" },
-          menuItem("[CAL]", "說待辦事項", "含時間則新增到 Google 日曆"),
+          menuItemCute("📌", "貼連結收藏", "任意網址自動收藏，可直接分類", "#FFE8ED", "#FF6B8A"),
+          menuItemCute("📋", "待辦清單", "查看、新增、完成、刪除待辦", "#EDE4FF", "#9B72CF"),
+          menuItemCute("📁", "傳圖片／檔案", "自動備份到 Google Drive", "#E0F7EF", "#3DAA7F"),
+          menuItemCute("📅", "說待辦事項", "含時間則新增到 Google 日曆", "#FFF5D6", "#C69000"),
         ],
       },
       footer: {
-        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "12px",
+        spacing: "sm",
+        backgroundColor: "#FFF0F5",
         contents: [
           {
             type: "box", layout: "horizontal", spacing: "sm",
             contents: DEFAULT_CATEGORIES.filter(function(c) { return c !== "未分類"; }).map(function(cat) {
-              return { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: cat, data: "action=view_category&cat=" + cat, displayText: cat + "收藏" } };
+              const catColor = { "個人": "#FF8FAB", "工作": "#9B72CF", "家庭": "#6DC9A8" }[cat] || "#888";
+              return {
+                type: "button", height: "sm", flex: 1,
+                style: "secondary",
+                action: { type: "postback", label: cat, data: "action=view_category&cat=" + cat, displayText: cat + "收藏" },
+              };
             }),
           },
           {
             type: "box", layout: "horizontal", spacing: "sm",
             contents: [
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "最近收藏", text: "最近收藏" } },
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "查看待辦", text: "查看待辦" } },
-              { type: "button", style: "primary", height: "sm", flex: 1, color: "#1A1A2E", action: { type: "message", label: "待辦清單", text: "待辦清單" } },
+              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "🕐 最近收藏", text: "最近收藏" } },
+              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "📋 查看待辦", text: "查看待辦" } },
+              { type: "button", height: "sm", flex: 1, style: "primary", color: "#FF8FAB", action: { type: "message", label: "✅ 待辦清單", text: "待辦清單" } },
             ],
           },
         ],
@@ -1127,15 +1157,39 @@ function buildMainMenuFlex() {
   };
 }
 
-function menuItem(icon, title, desc) {
+function menuItemCute(icon, title, desc, bgColor, textColor) {
   return {
-    type: "box", layout: "horizontal", spacing: "md",
+    type: "box",
+    layout: "horizontal",
+    spacing: "md",
+    paddingAll: "12px",
+    backgroundColor: bgColor,
+    cornerRadius: "16px",
+    margin: "sm",
     contents: [
-      { type: "text", text: icon, size: "sm", flex: 0, gravity: "center", color: "#1A1A2E" },
-      { type: "box", layout: "vertical", flex: 1, contents: [
-        { type: "text", text: title, size: "sm", weight: "bold", color: "#1A1A2E" },
-        { type: "text", text: desc, size: "xs", color: "#888888", wrap: true },
-      ]},
+      {
+        type: "box",
+        layout: "vertical",
+        flex: 0,
+        justifyContent: "center",
+        contents: [
+          { type: "text", text: icon, size: "xxl" },
+        ],
+      },
+      {
+        type: "box", layout: "vertical", flex: 1, justifyContent: "center",
+        paddingStart: "10px",
+        contents: [
+          { type: "text", text: title, size: "sm", weight: "bold", color: textColor },
+          { type: "text", text: desc, size: "xs", color: "#888888", wrap: true },
+        ],
+      },
+      {
+        type: "box", layout: "vertical", flex: 0, justifyContent: "center",
+        contents: [
+          { type: "text", text: "›", size: "xl", color: textColor, gravity: "center" },
+        ],
+      },
     ],
   };
 }
