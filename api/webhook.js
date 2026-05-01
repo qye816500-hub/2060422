@@ -374,53 +374,56 @@ async function handleTextMessage(replyToken, text, userId, clients) {
 function buildTodoMenuFlex() {
   return {
     type: "flex",
-    altText: "待辦功能選單",
+    altText: "📋 待辦功能選單",
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#2D3561" } },
+      size: "mega",
       header: {
-        type: "box",
-        layout: "vertical",
-        paddingAll: "16px",
+        type: "box", layout: "horizontal", paddingAll: "18px",
+        backgroundColor: "#EDE4FF",
         contents: [
-          { type: "text", text: "待辦功能選單", color: "#FFFFFF", weight: "bold", size: "md" },
-          { type: "text", text: "點下方按鈕操作", color: "#FFFFFFCC", size: "xs" },
+          { type: "text", text: "📋", size: "xl", flex: 0 },
+          {
+            type: "box", layout: "vertical", flex: 1, paddingStart: "10px",
+            contents: [
+              { type: "text", text: "待辦清單", weight: "bold", size: "lg", color: "#7B5EA7" },
+              { type: "text", text: "點下方按鈕操作 ✨", size: "xs", color: "#9B72CF" },
+            ],
+          },
         ],
       },
       body: {
-        type: "box",
-        layout: "vertical",
-        paddingAll: "16px",
-        spacing: "md",
+        type: "box", layout: "vertical", paddingAll: "16px", spacing: "sm",
+        backgroundColor: "#FDFAFF",
         contents: [
-          { type: "text", text: "新增待辦範例", weight: "bold", size: "sm", color: "#333333" },
-          { type: "text", text: "整理報價單", size: "sm", color: "#666666", wrap: true },
-          { type: "text", text: "明天下午3點提醒我回覆客戶", size: "sm", color: "#666666", wrap: true },
-          { type: "text", text: "點「新增待辦」後直接輸入內容即可", size: "xs", color: "#999999", wrap: true },
+          {
+            type: "box", layout: "vertical", paddingAll: "12px",
+            backgroundColor: "#F5F0FF", cornerRadius: "16px",
+            contents: [
+              { type: "text", text: "💡 新增待辦範例", weight: "bold", size: "sm", color: "#7B5EA7" },
+              { type: "text", text: "整理報價單", size: "sm", color: "#888", margin: "sm" },
+              { type: "text", text: "明天下午3點提醒我回覆客戶", size: "sm", color: "#888" },
+              { type: "text", text: "點「新增待辦」後直接輸入即可", size: "xs", color: "#BBB", margin: "sm" },
+            ],
+          },
         ],
       },
       footer: {
-        type: "box",
-        layout: "vertical",
-        spacing: "sm",
-        paddingAll: "12px",
+        type: "box", layout: "vertical", spacing: "sm", paddingAll: "12px",
+        backgroundColor: "#FDFAFF",
         contents: [
           {
-            type: "box",
-            layout: "horizontal",
-            spacing: "sm",
+            type: "box", layout: "horizontal", spacing: "sm",
             contents: [
               { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "查看待辦", data: "action=todo_view", displayText: "查看待辦" } },
-              { type: "button", style: "primary", height: "sm", flex: 1, color: "#2D3561", action: { type: "postback", label: "新增待辦", data: "action=todo_new", displayText: "新增待辦" } },
+              { type: "button", style: "primary", height: "sm", flex: 1, color: "#9B72CF", action: { type: "postback", label: "＋ 新增待辦", data: "action=todo_new", displayText: "新增待辦" } },
             ],
           },
           {
-            type: "box",
-            layout: "horizontal",
-            spacing: "sm",
+            type: "box", layout: "horizontal", spacing: "sm",
             contents: [
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "完成待辦", data: "action=todo_complete", displayText: "完成待辦" } },
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "刪除待辦", data: "action=todo_delete", displayText: "刪除待辦" } },
+              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "✅ 完成待辦", data: "action=todo_complete", displayText: "完成待辦" } },
+              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "🗑️ 刪除待辦", data: "action=todo_delete", displayText: "刪除待辦" } },
             ],
           },
         ],
@@ -467,15 +470,32 @@ async function handleCreateTodo(replyToken, content, userId, sheets, calendar) {
 
   await replyFlex(replyToken, {
     type: "flex",
-    altText: "已新增待辦",
+    altText: "已新增待辦 ✨",
     contents: {
       type: "bubble",
-      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md", contents: bodyContents },
+      header: {
+        type: "box", layout: "horizontal", paddingAll: "16px",
+        backgroundColor: "#EDE4FF",
+        contents: [
+          { type: "text", text: "📋", size: "xl", flex: 0 },
+          {
+            type: "box", layout: "vertical", flex: 1, paddingStart: "10px",
+            contents: [
+              { type: "text", text: "已新增待辦！", weight: "bold", size: "lg", color: "#7B5EA7" },
+              { type: "text", text: content, size: "xs", color: "#9B72CF", wrap: true },
+            ],
+          },
+        ],
+      },
+      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
+        backgroundColor: "#FDFAFF",
+        contents: bodyContents },
       footer: {
         type: "box", layout: "horizontal", spacing: "sm", paddingAll: "12px",
+        backgroundColor: "#FDFAFF",
         contents: [
           { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "postback", label: "查看待辦", data: "action=todo_view", displayText: "查看待辦" } },
-          { type: "button", style: "primary", height: "sm", flex: 1, color: "#2D3561", action: { type: "postback", label: "再新增一筆", data: "action=todo_new", displayText: "新增待辦" } },
+          { type: "button", style: "primary", height: "sm", flex: 1, color: "#9B72CF", action: { type: "postback", label: "再新增一筆", data: "action=todo_new", displayText: "新增待辦" } },
         ],
       },
     },
@@ -649,15 +669,22 @@ function buildLinkSavedFlex(url, platform, note, userCats) {
 
   return {
     type: "flex",
-    altText: "已收藏成功",
+    altText: "已收藏成功 🎀",
     contents: {
       type: "bubble",
       size: "mega",
       header: {
-        type: "box", layout: "vertical", paddingAll: "16px", backgroundColor: "#1A1A2E",
+        type: "box", layout: "horizontal", paddingAll: "16px",
+        backgroundColor: "#FFE8ED",
         contents: [
-          { type: "text", text: "已收藏成功", color: "#FFFFFF", weight: "bold", size: "md" },
-          { type: "text", text: platform.name, color: "#FFFFFFCC", size: "sm" },
+          { type: "text", text: "📌", size: "xl", flex: 0 },
+          {
+            type: "box", layout: "vertical", flex: 1, paddingStart: "10px",
+            contents: [
+              { type: "text", text: "已收藏成功！", weight: "bold", size: "lg", color: "#FF6B8A" },
+              { type: "text", text: platform.name, size: "xs", color: "#FF8FAB" },
+            ],
+          },
         ],
       },
       body: {
@@ -707,24 +734,30 @@ async function handleSetCategory(replyToken, category, userId, sheets) {
   });
 
   const url = String(lastRow[1] || "");
-  const catColor = CATEGORY_COLORS[category] || "#1A1A2E";
   await replyFlex(replyToken, {
     type: "flex",
-    altText: "已設為" + category,
+    altText: "已設為「" + category + "」🎀",
     contents: {
       type: "bubble",
-      body: {
-        type: "box", layout: "vertical", paddingAll: "20px", spacing: "md",
+      header: {
+        type: "box", layout: "horizontal", paddingAll: "16px",
+        backgroundColor: "#FFE8ED",
         contents: [
-          { type: "text", text: "已歸類到「" + category + "」", weight: "bold", size: "md", color: "#333333" },
-          { type: "text", text: "之後可用「" + category + "收藏」查詢", size: "xs", color: "#888888" },
+          { type: "text", text: "🏷️", size: "xl", flex: 0 },
+          {
+            type: "box", layout: "vertical", flex: 1, paddingStart: "10px",
+            contents: [
+              { type: "text", text: "已歸類到「" + category + "」", weight: "bold", size: "md", color: "#FF6B8A" },
+              { type: "text", text: "輸入「" + category + "收藏」可查詢", size: "xs", color: "#FF8FAB" },
+            ],
+          },
         ],
       },
       footer: {
         type: "box", layout: "horizontal", spacing: "sm", paddingAll: "12px",
         contents: [
-          { type: "button", style: "primary", height: "sm", flex: 1, color: catColor, action: { type: "postback", label: "查看" + category, data: "action=view_category&cat=" + category, displayText: category + "收藏" } },
-          { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "uri", label: "開啟連結", uri: url } },
+          { type: "button", style: "primary", height: "sm", flex: 1, color: "#FF8FAB", action: { type: "postback", label: "查看" + category, data: "action=view_category&cat=" + category, displayText: category + "收藏" } },
+          { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "uri", label: "🔗 開啟連結", uri: url } },
         ],
       },
     },
@@ -934,13 +967,28 @@ async function getOrCreateFolder(drive, folderName) {
 
 function buildFileSavedFlex(fileName, fileType, driveUrl, now) {
   return {
-    type: "flex", altText: "檔案備份完成",
+    type: "flex", altText: "檔案備份完成 ☁️",
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#1a73e8" } },
-      header: { type: "box", layout: "vertical", paddingAll: "16px", contents: [{ type: "text", text: "檔案備份完成", color: "#ffffff", weight: "bold", size: "md" }] },
-      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md", contents: [makeRow("檔案名", fileName), makeRow("類型", fileType.toUpperCase()), makeRow("時間", now)] },
-      footer: { type: "box", layout: "vertical", paddingAll: "12px", contents: [{ type: "button", style: "primary", height: "sm", color: "#1a73e8", action: { type: "uri", label: "查看 Google Drive", uri: driveUrl } }] },
+      header: {
+        type: "box", layout: "horizontal", paddingAll: "16px",
+        backgroundColor: "#E0F7EF",
+        contents: [
+          { type: "text", text: "📁", size: "xl", flex: 0 },
+          {
+            type: "box", layout: "vertical", flex: 1, paddingStart: "10px",
+            contents: [
+              { type: "text", text: "檔案備份完成！", weight: "bold", size: "lg", color: "#3DAA7F" },
+              { type: "text", text: "已存到 Google Drive", size: "xs", color: "#6DC9A8" },
+            ],
+          },
+        ],
+      },
+      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
+        backgroundColor: "#F5FFFB",
+        contents: [makeRow("檔案名", fileName), makeRow("類型", fileType.toUpperCase()), makeRow("時間", now)] },
+      footer: { type: "box", layout: "vertical", paddingAll: "12px",
+        contents: [{ type: "button", style: "primary", height: "sm", color: "#3DAA7F", action: { type: "uri", label: "☁️ 查看 Google Drive", uri: driveUrl } }] },
     },
   };
 }
@@ -1063,13 +1111,27 @@ async function createCalendarEvent(calendar, parsed) {
 function buildCalendarFlex(parsed, event) {
   const timeStr = parsed.isAllDay ? formatDate(parsed.start) + "(全天)" : formatDate(parsed.start) + " " + formatTime(parsed.start);
   return {
-    type: "flex", altText: "已新增：" + parsed.title,
+    type: "flex", altText: "已新增到 Google 日曆 📅",
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#0F9D58" } },
-      header: { type: "box", layout: "vertical", paddingAll: "16px", contents: [{ type: "text", text: "已新增到 Google 日曆", color: "#ffffff", weight: "bold", size: "md" }] },
-      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md", contents: [makeRow("行程", parsed.title), makeRow("時間", timeStr), makeRow("提醒", parsed.isAllDay ? "(全天，無提醒)" : "開始前 10 分鐘")] },
-      footer: event.htmlLink ? { type: "box", layout: "vertical", paddingAll: "12px", contents: [{ type: "button", style: "primary", height: "sm", color: "#0F9D58", action: { type: "uri", label: "查看 Google 日曆", uri: event.htmlLink } }] } : undefined,
+      header: {
+        type: "box", layout: "horizontal", paddingAll: "16px",
+        backgroundColor: "#FFF5D6",
+        contents: [
+          { type: "text", text: "📅", size: "xl", flex: 0 },
+          {
+            type: "box", layout: "vertical", flex: 1, paddingStart: "10px",
+            contents: [
+              { type: "text", text: "已新增到 Google 日曆！", weight: "bold", size: "md", color: "#C69000" },
+              { type: "text", text: parsed.title, size: "xs", color: "#D4A800", wrap: true },
+            ],
+          },
+        ],
+      },
+      body: { type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
+        backgroundColor: "#FFFDF0",
+        contents: [makeRow("行程", parsed.title), makeRow("時間", timeStr), makeRow("提醒", parsed.isAllDay ? "(全天，無提醒)" : "開始前 10 分鐘")] },
+      footer: event.htmlLink ? { type: "box", layout: "vertical", paddingAll: "12px", contents: [{ type: "button", style: "primary", height: "sm", color: "#C69000", action: { type: "uri", label: "📅 查看 Google 日曆", uri: event.htmlLink } }] } : undefined,
     },
   };
 }
@@ -1116,34 +1178,6 @@ function buildMainMenuFlex() {
           menuItemCute("📋", "待辦清單", "查看、新增、完成、刪除待辦", "#EDE4FF", "#9B72CF"),
           menuItemCute("📁", "傳圖片／檔案", "自動備份到 Google Drive", "#E0F7EF", "#3DAA7F"),
           menuItemCute("📅", "說待辦事項", "含時間則新增到 Google 日曆", "#FFF5D6", "#C69000"),
-        ],
-      },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        paddingAll: "12px",
-        spacing: "sm",
-        backgroundColor: "#FFF0F5",
-        contents: [
-          {
-            type: "box", layout: "horizontal", spacing: "sm",
-            contents: DEFAULT_CATEGORIES.filter(function(c) { return c !== "未分類"; }).map(function(cat) {
-              const catColor = { "個人": "#FF8FAB", "工作": "#9B72CF", "家庭": "#6DC9A8" }[cat] || "#888";
-              return {
-                type: "button", height: "sm", flex: 1,
-                style: "secondary",
-                action: { type: "postback", label: cat, data: "action=view_category&cat=" + cat, displayText: cat + "收藏" },
-              };
-            }),
-          },
-          {
-            type: "box", layout: "horizontal", spacing: "sm",
-            contents: [
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "🕐 最近收藏", text: "最近收藏" } },
-              { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "📋 查看待辦", text: "查看待辦" } },
-              { type: "button", height: "sm", flex: 1, style: "primary", color: "#FF8FAB", action: { type: "message", label: "✅ 待辦清單", text: "待辦清單" } },
-            ],
-          },
         ],
       },
     },
