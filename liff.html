@@ -1176,11 +1176,21 @@ function renderStats() {
   // 計算統計資料
   const now = new Date();
   const thisMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const thisMonthAlt = now.getFullYear() + '/' + String(now.getMonth()+1).padStart(2,'0');
   const today = now.toISOString().substring(0,10);
+
+  function isThisMonth(dateStr) {
+    return String(dateStr||'').startsWith(thisMonth) || String(dateStr||'').startsWith(thisMonthAlt);
+  }
+  function isThisDay(dateStr, dayStr) {
+    const s = String(dateStr||'');
+    const altDay = dayStr.replace(/-/g, '/');
+    return s.startsWith(dayStr) || s.startsWith(altDay);
+  }
 
   // ── 收藏統計 ──
   const bmTotal = allBookmarks.length;
-  const bmThisMonth = allBookmarks.filter(function(b) { return String(b.createdAt||'').startsWith(thisMonth); }).length;
+  const bmThisMonth = allBookmarks.filter(function(b) { return isThisMonth(b.createdAt); }).length;
 
   // 平台分布
   const platformCount = {};
@@ -1204,7 +1214,7 @@ function renderStats() {
   const todoDone = allTodos.filter(function(t){ return t.status === 'done'; }).length;
   const todoTotal = todoPending + todoDone;
   const todoRate = todoTotal > 0 ? Math.round(todoDone / todoTotal * 100) : 0;
-  const todoThisMonth = allTodos.filter(function(t){ return t.status === 'done' && String(t.createdAt||'').startsWith(thisMonth); }).length;
+  const todoThisMonth = allTodos.filter(function(t){ return t.status === 'done' && isThisMonth(t.createdAt); }).length;
 
   // ── 檔案統計 ──
   const fileTotal = allFiles.length;
@@ -1225,7 +1235,7 @@ function renderStats() {
     days7.push({
       date: ds,
       day: dayNames[d.getDay()],
-      bm: allBookmarks.filter(function(b){ return String(b.createdAt||'').startsWith(ds); }).length,
+      bm: allBookmarks.filter(function(b){ return isThisDay(b.createdAt, ds); }).length,
     });
   }
   const maxBm = Math.max(...days7.map(function(d){ return d.bm; }), 1);
