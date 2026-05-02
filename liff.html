@@ -157,6 +157,24 @@
   .input { width: 100%; padding: 14px 16px; border: 2px solid #EDE4FF; border-radius: 14px; font-family: 'Nunito', sans-serif; font-size: 15px; color: var(--text); background: #FDFAFF; outline: none; margin-bottom: 12px; transition: border-color 0.2s; }
   .input:focus { border-color: var(--lavender-deep); }
 
+  /* Stats page */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: white; border-radius: 20px; padding: 18px 14px; box-shadow: var(--shadow); text-align: center; }
+  .stat-number { font-size: 36px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: var(--text-light); font-weight: 600; }
+  .stat-sub { font-size: 11px; color: #C0B8B5; margin-top: 3px; }
+  .stat-section-title { font-size: 15px; font-weight: 800; color: var(--text); margin: 16px 0 10px; display: flex; align-items: center; gap: 6px; }
+  .stat-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .stat-bar-label { font-size: 12px; font-weight: 700; color: var(--text); width: 70px; flex-shrink: 0; text-align: right; }
+  .stat-bar-wrap { flex: 1; background: #F5F0FF; border-radius: 20px; height: 14px; overflow: hidden; }
+  .stat-bar-fill { height: 100%; border-radius: 20px; transition: width 0.8s ease; }
+  .stat-bar-val { font-size: 12px; font-weight: 700; color: var(--text-light); width: 30px; flex-shrink: 0; }
+  .stat-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 8px; }
+  .stat-week-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .stat-week-bar { width: 100%; border-radius: 6px; background: var(--pink); min-height: 4px; }
+  .stat-week-day { font-size: 10px; color: var(--text-light); font-weight: 600; }
+  .stat-week-num { font-size: 10px; color: var(--text-light); }
+
   /* Intro page */
   .intro-card { background: white; border-radius: 20px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 20px rgba(180,120,100,0.12); display: flex; gap: 16px; align-items: flex-start; cursor: pointer; transition: all 0.2s; }
   .intro-card:active { transform: scale(0.98); }
@@ -188,6 +206,7 @@
     <button class="nav-btn" onclick="switchTab('todos', this)">📋 待辦</button>
     <button class="nav-btn" onclick="switchTab('calendar', this)">📅 月曆</button>
     <button class="nav-btn" onclick="switchTab('files', this)">📁 檔案</button>
+    <button class="nav-btn" onclick="switchTab('stats', this)">📊 統計</button>
   </div>
 </div>
 
@@ -323,6 +342,12 @@
     <div id="files-list"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
   </div>
 
+  <!-- 統計 -->
+  <div class="section" id="section-stats">
+    <div class="section-title"><span>📊</span> 使用統計</div>
+    <div id="stats-content"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
+  </div>
+
 </div>
 
 <!-- Edit Bookmark Note Modal -->
@@ -449,7 +474,7 @@ async function initLiff() {
   const urlParams = new URLSearchParams(window.location.search);
   const initPage = urlParams.get('page');
   if (initPage) {
-    const tabMap = { 'intro': 0, 'bookmarks': 1, 'todos': 2, 'calendar': 3, 'files': 4 };
+    const tabMap = { 'intro': 0, 'bookmarks': 1, 'todos': 2, 'calendar': 3, 'files': 4, 'stats': 5 };
     const navBtns = document.querySelectorAll('.nav-btn');
     if (tabMap[initPage] !== undefined) {
       switchTab(initPage, navBtns[tabMap[initPage]]);
@@ -459,7 +484,7 @@ async function initLiff() {
 
 function switchTabByName(tab) {
   const navBtns = document.querySelectorAll('.nav-btn');
-  const tabOrder = ['intro', 'bookmarks', 'todos', 'calendar', 'files'];
+  const tabOrder = ['intro', 'bookmarks', 'todos', 'calendar', 'files', 'stats'];
   const idx = tabOrder.indexOf(tab);
   switchTab(tab, idx >= 0 ? navBtns[idx] : null);
 }
@@ -470,6 +495,7 @@ function switchTab(tab, btn) {
   document.getElementById('section-' + tab).classList.add('active');
   if (btn) btn.classList.add('active');
   if (tab === 'calendar') renderCalendar();
+  if (tab === 'stats') renderStats();
 }
 
 function showToast(msg) {
@@ -1138,6 +1164,163 @@ async function deleteFile(fileId) {
     if (data.success) { showToast('🗑️ 已刪除檔案！'); loadFiles(); }
     else showToast('刪除失敗');
   } catch(e) { showToast('刪除失敗'); }
+}
+
+// ============================================================
+// Stats
+// ============================================================
+function renderStats() {
+  const el = document.getElementById('stats-content');
+  el.innerHTML = '<div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>';
+
+  // 計算統計資料
+  const now = new Date();
+  const thisMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const today = now.toISOString().substring(0,10);
+
+  // ── 收藏統計 ──
+  const bmTotal = allBookmarks.length;
+  const bmThisMonth = allBookmarks.filter(function(b) { return String(b.createdAt||'').startsWith(thisMonth); }).length;
+
+  // 平台分布
+  const platformCount = {};
+  allBookmarks.forEach(function(b) {
+    const p = b.platform || 'Link';
+    platformCount[p] = (platformCount[p] || 0) + 1;
+  });
+  const topPlatforms = Object.entries(platformCount).sort(function(a,b){ return b[1]-a[1]; }).slice(0,5);
+
+  // 分類分布
+  const catCount = {};
+  allBookmarks.forEach(function(b) {
+    const c = b.category || '未分類';
+    catCount[c] = (catCount[c] || 0) + 1;
+  });
+  const topCats = Object.entries(catCount).sort(function(a,b){ return b[1]-a[1]; }).slice(0,5);
+
+  // ── 待辦統計 ──
+  const todoAll = allTodos.filter(function(t){ return t.status !== 'deleted'; });
+  const todoPending = allTodos.filter(function(t){ return t.status === 'pending'; }).length;
+  const todoDone = allTodos.filter(function(t){ return t.status === 'done'; }).length;
+  const todoTotal = todoPending + todoDone;
+  const todoRate = todoTotal > 0 ? Math.round(todoDone / todoTotal * 100) : 0;
+  const todoThisMonth = allTodos.filter(function(t){ return t.status === 'done' && String(t.createdAt||'').startsWith(thisMonth); }).length;
+
+  // ── 檔案統計 ──
+  const fileTotal = allFiles.length;
+  const fileTotalSize = allFiles.reduce(function(sum, f){ return sum + (f.size||0); }, 0);
+  const fileTypeCount = {};
+  allFiles.forEach(function(f) {
+    const t = f.fileType || 'other';
+    fileTypeCount[t] = (fileTypeCount[t] || 0) + 1;
+  });
+
+  // ── 近7天活躍度 ──
+  const days7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const ds = d.toISOString().substring(0,10);
+    const dayNames = ['日','一','二','三','四','五','六'];
+    days7.push({
+      date: ds,
+      day: dayNames[d.getDay()],
+      bm: allBookmarks.filter(function(b){ return String(b.createdAt||'').startsWith(ds); }).length,
+    });
+  }
+  const maxBm = Math.max(...days7.map(function(d){ return d.bm; }), 1);
+
+  // ── 渲染 ──
+  const catColorMap = {'個人':'#FF8FAB','工作':'#9B72CF','家庭':'#6DC9A8','未分類':'#888'};
+  const platformColors = ['#FFB7C5','#C5A8E8','#B5EAD7','#FFE066','#F0EDED'];
+
+  el.innerHTML = `
+    <!-- 總覽卡片 -->
+    <div class="stat-grid">
+      <div class="stat-card" style="background:linear-gradient(135deg,#FFE8ED,#FFF0F5)">
+        <div class="stat-number" style="color:#FF6B8A">${bmTotal}</div>
+        <div class="stat-label">📌 總收藏數</div>
+        <div class="stat-sub">本月 +${bmThisMonth}</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#EDE4FF,#F5F0FF)">
+        <div class="stat-number" style="color:#9B72CF">${todoRate}%</div>
+        <div class="stat-label">📋 待辦完成率</div>
+        <div class="stat-sub">${todoDone} 完成 / ${todoPending} 待辦</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#E0F7EF,#F0FFF8)">
+        <div class="stat-number" style="color:#3DAA7F">${fileTotal}</div>
+        <div class="stat-label">📁 備份檔案數</div>
+        <div class="stat-sub">${formatSize(fileTotalSize)}</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#FFF5D6,#FFFDF0)">
+        <div class="stat-number" style="color:#C69000">${todoThisMonth}</div>
+        <div class="stat-label">✅ 本月完成待辦</div>
+        <div class="stat-sub">繼續加油！</div>
+      </div>
+    </div>
+
+    <!-- 近7天收藏活躍度 -->
+    <div class="stat-section-title">📈 近7天收藏活躍度</div>
+    <div class="card"><div class="card-body">
+      <div class="stat-week-grid">
+        ${days7.map(function(d) {
+          const h = Math.max(8, Math.round(d.bm / maxBm * 80));
+          const isToday = d.date === today;
+          return `<div class="stat-week-col">
+            <div class="stat-week-num">${d.bm}</div>
+            <div class="stat-week-bar" style="height:${h}px;background:${isToday ? 'var(--lavender-deep)' : 'var(--pink)'}"></div>
+            <div class="stat-week-day" style="${isToday ? 'color:var(--lavender-deep);font-weight:800' : ''}">${d.day}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div></div>
+
+    <!-- 收藏平台分布 -->
+    ${topPlatforms.length ? `
+    <div class="stat-section-title">🌐 收藏平台分布</div>
+    <div class="card"><div class="card-body">
+      ${topPlatforms.map(function(p, i) {
+        const pct = bmTotal > 0 ? Math.round(p[1]/bmTotal*100) : 0;
+        return `<div class="stat-bar-row">
+          <div class="stat-bar-label">${p[0]}</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${pct}%;background:${platformColors[i]||'#F5F0FF'}"></div></div>
+          <div class="stat-bar-val">${p[1]}</div>
+        </div>`;
+      }).join('')}
+    </div></div>` : ''}
+
+    <!-- 收藏分類分布 -->
+    ${topCats.length ? `
+    <div class="stat-section-title">🏷️ 收藏分類分布</div>
+    <div class="card"><div class="card-body">
+      ${topCats.map(function(c) {
+        const pct = bmTotal > 0 ? Math.round(c[1]/bmTotal*100) : 0;
+        const color = catColorMap[c[0]] || '#888';
+        return `<div class="stat-bar-row">
+          <div class="stat-bar-label">${c[0]}</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <div class="stat-bar-val">${c[1]}</div>
+        </div>`;
+      }).join('')}
+    </div></div>` : ''}
+
+    <!-- 檔案類型分布 -->
+    ${Object.keys(fileTypeCount).length ? `
+    <div class="stat-section-title">📂 檔案類型分布</div>
+    <div class="card"><div class="card-body">
+      ${Object.entries(fileTypeCount).sort(function(a,b){return b[1]-a[1];}).map(function(f) {
+        const pct = fileTotal > 0 ? Math.round(f[1]/fileTotal*100) : 0;
+        const icons = {image:'🖼️',video:'🎬',audio:'🎵',pdf:'📄',excel:'📊',word:'📝',other:'📁'};
+        return `<div class="stat-bar-row">
+          <div class="stat-bar-label">${icons[f[0]]||'📁'} ${f[0]}</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${pct}%;background:var(--mint-deep)"></div></div>
+          <div class="stat-bar-val">${f[1]}</div>
+        </div>`;
+      }).join('')}
+    </div></div>` : ''}
+
+    <div style="text-align:center;padding:16px 0 8px;font-size:12px;color:#C0B8B5">🌸 資料來自你的使用紀錄</div>
+  `;
 }
 
 initLiff();
