@@ -13,6 +13,8 @@
     { "src": "/api/categories", "dest": "/api/categories.js" },
     { "src": "/api/og", "dest": "/api/og.js" },
     { "src": "/api/thumb", "dest": "/api/thumb.js" },
+    { "src": "/api/notes/([^/]+)", "dest": "/api/notes.js" },
+    { "src": "/api/notes", "dest": "/api/notes.js" },
     { "src": "/api/setup-richmenu", "dest": "/api/setup-richmenu.js" },
     { "src": "/api/cron/remind", "dest": "/api/cron/remind.js" }
   ],

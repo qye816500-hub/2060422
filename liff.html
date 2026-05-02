@@ -204,6 +204,7 @@
     <button class="nav-btn active" onclick="switchTab('intro', this)">✨ 功能介紹</button>
     <button class="nav-btn" onclick="switchTab('bookmarks', this)">📌 收藏</button>
     <button class="nav-btn" onclick="switchTab('todos', this)">📋 待辦</button>
+    <button class="nav-btn" onclick="switchTab('notes', this)">📝 筆記</button>
     <button class="nav-btn" onclick="switchTab('calendar', this)">📅 月曆</button>
     <button class="nav-btn" onclick="switchTab('files', this)">📁 檔案</button>
     <button class="nav-btn" onclick="switchTab('stats', this)">📊 統計</button>
@@ -243,6 +244,16 @@
         <div class="intro-title">待辦清單管理</div>
         <div class="intro-desc">輸入待辦事項，設定提醒時間，完成後一鍵打勾。有設時間的還會自動同步到 Google 日曆！</div>
         <div class="intro-tags"><span class="intro-tag">⏰ 提醒時間</span><span class="intro-tag">📅 同步日曆</span><span class="intro-tag">✅ 一鍵完成</span></div>
+      </div>
+    </div>
+
+    <!-- 筆記 -->
+    <div class="intro-card" onclick="switchTabByName('notes')">
+      <div class="intro-icon" style="background:linear-gradient(135deg,#C8E6C9,#81C784)">📝</div>
+      <div class="intro-content">
+        <div class="intro-title">收藏筆記</div>
+        <div class="intro-desc">在 LINE 輸入「筆記 內容」快速記錄靈感、備忘，或在 LIFF 直接新增。支援標籤分類和搜尋！</div>
+        <div class="intro-tags"><span class="intro-tag">✍️ 快速記錄</span><span class="intro-tag">🏷️ 標籤分類</span><span class="intro-tag">🔍 搜尋</span></div>
       </div>
     </div>
 
@@ -342,12 +353,39 @@
     <div id="files-list"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
   </div>
 
+  <!-- 筆記 -->
+  <div class="section" id="section-notes">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="section-title" style="margin:0"><span>📝</span> 我的筆記</div>
+      <button class="btn btn-primary" style="flex:none;padding:10px 16px" onclick="openAddNote()">＋ 新增</button>
+    </div>
+    <div style="position:relative;margin-bottom:12px">
+      <input id="note-search" class="input" style="margin:0;padding-left:40px" placeholder="🔍 搜尋筆記..." oninput="searchNotes(this.value)" />
+      <button id="note-search-clear" onclick="clearNoteSearch()" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:none;font-size:18px;cursor:pointer;color:#ccc">✕</button>
+    </div>
+    <div id="notes-list"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
+  </div>
+
   <!-- 統計 -->
   <div class="section" id="section-stats">
     <div class="section-title"><span>📊</span> 使用統計</div>
     <div id="stats-content"><div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
   </div>
 
+</div>
+
+<!-- Add/Edit Note Modal -->
+<div class="modal-overlay" id="noteModal" onclick="closeNoteModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="noteModalTitle">📝 新增筆記</div>
+    <textarea class="input" id="noteContent" placeholder="輸入筆記內容..." style="min-height:120px;resize:none;line-height:1.6"></textarea>
+    <input class="input" id="noteTags" placeholder="標籤（用逗號分隔，例如：工作,重要）" />
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary" onclick="document.getElementById('noteModal').classList.remove('show')">取消</button>
+      <button class="btn btn-primary" onclick="submitNote()">儲存 📝</button>
+    </div>
+  </div>
 </div>
 
 <!-- Edit Bookmark Note Modal -->
@@ -474,7 +512,7 @@ async function initLiff() {
   const urlParams = new URLSearchParams(window.location.search);
   const initPage = urlParams.get('page');
   if (initPage) {
-    const tabMap = { 'intro': 0, 'bookmarks': 1, 'todos': 2, 'calendar': 3, 'files': 4, 'stats': 5 };
+    const tabMap = { 'intro': 0, 'bookmarks': 1, 'todos': 2, 'notes': 3, 'calendar': 4, 'files': 5, 'stats': 6 };
     const navBtns = document.querySelectorAll('.nav-btn');
     if (tabMap[initPage] !== undefined) {
       switchTab(initPage, navBtns[tabMap[initPage]]);
@@ -484,7 +522,7 @@ async function initLiff() {
 
 function switchTabByName(tab) {
   const navBtns = document.querySelectorAll('.nav-btn');
-  const tabOrder = ['intro', 'bookmarks', 'todos', 'calendar', 'files', 'stats'];
+  const tabOrder = ['intro', 'bookmarks', 'todos', 'notes', 'calendar', 'files', 'stats'];
   const idx = tabOrder.indexOf(tab);
   switchTab(tab, idx >= 0 ? navBtns[idx] : null);
 }
@@ -496,6 +534,7 @@ function switchTab(tab, btn) {
   if (btn) btn.classList.add('active');
   if (tab === 'calendar') renderCalendar();
   if (tab === 'stats') renderStats();
+  if (tab === 'notes') loadNotes();
 }
 
 function showToast(msg) {
@@ -960,6 +999,124 @@ function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
   return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+// ============================================================
+// Notes
+// ============================================================
+let allNotes = [];
+let editingNoteId2 = null;
+
+async function loadNotes() {
+  try {
+    const res = await fetch(API_BASE + '/notes?userId=' + userId);
+    const data = await res.json();
+    allNotes = data.notes || [];
+    renderNotes();
+  } catch(e) {
+    document.getElementById('notes-list').innerHTML = renderEmpty('📭', '載入失敗', '請稍後再試');
+  }
+}
+
+function renderNotes(keyword) {
+  const list = document.getElementById('notes-list');
+  let items = allNotes;
+  if (keyword) {
+    const kw = keyword.toLowerCase();
+    items = items.filter(function(n) {
+      return (n.content||'').toLowerCase().includes(kw) || (n.tags||'').toLowerCase().includes(kw);
+    });
+  }
+  if (!items.length) {
+    list.innerHTML = keyword
+      ? renderEmpty('🔍', '找不到「' + keyword + '」', '')
+      : renderEmpty('📝', '還沒有筆記', '點右上角新增，或在 LINE 輸入「筆記 內容」');
+    return;
+  }
+  list.innerHTML = items.map(function(n) {
+    const tags = n.tags ? n.tags.split(/[,，、]/).filter(Boolean) : [];
+    return '<div class="card fade-in"><div class="card-body">' +
+      '<div style="font-size:14px;font-weight:600;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-all;margin-bottom:8px">' + escHtml(n.content) + '</div>' +
+      (tags.length ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">' +
+        tags.map(function(t) { return '<span style="background:#E8F5E9;color:#2E7D32;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">#' + escHtml(t.trim()) + '</span>'; }).join('') +
+      '</div>' : '') +
+      '<div style="font-size:11px;color:var(--text-light);margin-bottom:10px">🕐 ' + String(n.createdAt||'').substring(0,16) + '</div>' +
+      '<div class="card-actions">' +
+        '<button class="btn btn-secondary" onclick="openEditNote2(\'' + escAttr(n.id) + '\',\'' + escAttr(n.content) + '\',\'' + escAttr(n.tags||'') + '\')">✏️ 編輯</button>' +
+        '<button class="btn btn-danger" onclick="deleteNote(\'' + escAttr(n.id) + '\')">🗑️ 刪除</button>' +
+      '</div>' +
+    '</div></div>';
+  }).join('');
+}
+
+let noteSearchTimer = null;
+function searchNotes(val) {
+  document.getElementById('note-search-clear').style.display = val ? 'block' : 'none';
+  clearTimeout(noteSearchTimer);
+  noteSearchTimer = setTimeout(function() { renderNotes(val); }, 200);
+}
+function clearNoteSearch() {
+  document.getElementById('note-search').value = '';
+  document.getElementById('note-search-clear').style.display = 'none';
+  renderNotes();
+}
+
+function openAddNote() {
+  editingNoteId2 = null;
+  document.getElementById('noteModalTitle').textContent = '📝 新增筆記';
+  document.getElementById('noteContent').value = '';
+  document.getElementById('noteTags').value = '';
+  document.getElementById('noteModal').classList.add('show');
+}
+
+function openEditNote2(id, content, tags) {
+  editingNoteId2 = id;
+  document.getElementById('noteModalTitle').textContent = '✏️ 編輯筆記';
+  document.getElementById('noteContent').value = content || '';
+  document.getElementById('noteTags').value = tags || '';
+  document.getElementById('noteModal').classList.add('show');
+}
+
+function closeNoteModal(e) {
+  if (e.target === document.getElementById('noteModal')) document.getElementById('noteModal').classList.remove('show');
+}
+
+async function submitNote() {
+  const content = document.getElementById('noteContent').value.trim();
+  const tags = document.getElementById('noteTags').value.trim();
+  if (!content) { showToast('請輸入筆記內容 🌸'); return; }
+
+  try {
+    let res;
+    if (editingNoteId2) {
+      res = await fetch(API_BASE + '/notes/' + editingNoteId2, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, tags })
+      });
+    } else {
+      res = await fetch(API_BASE + '/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, content, tags })
+      });
+    }
+    const data = await res.json();
+    if (data.success) {
+      showToast(editingNoteId2 ? '✅ 筆記已更新！' : '📝 筆記已儲存！');
+      document.getElementById('noteModal').classList.remove('show');
+      loadNotes();
+    } else showToast('儲存失敗');
+  } catch(e) { showToast('儲存失敗'); }
+}
+
+async function deleteNote(id) {
+  try {
+    const res = await fetch(API_BASE + '/notes?userId=' + userId + '&id=' + encodeURIComponent(id), { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) { showToast('🗑️ 已刪除筆記！'); loadNotes(); }
+    else showToast('刪除失敗');
+  } catch(e) { showToast('刪除失敗'); }
 }
 
 // ============================================================
