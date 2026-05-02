@@ -1,13 +1,13 @@
 // api/todos.js
-// GET /api/todos?userId=xxx
-// POST /api/todos { userId, content, remindAt }
-// PATCH /api/todos/:id { status }
+// GET   /api/todos?userId=xxx
+// POST  /api/todos { userId, content, remindAt }
+// PATCH /api/todos/:id { status } or { content, remindAt }
 
 const { google } = require("googleapis");
 
 const GOOGLE_CREDENTIALS = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
 const SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
-const SHEET_NAME = "\u5F85\u8FA6\u6E05\u55AE";
+const SHEET_NAME = "待辦清單";
 
 async function getSheetsClient() {
   const credentials = JSON.parse(GOOGLE_CREDENTIALS);
@@ -38,14 +38,12 @@ module.exports = async function(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
     const sheets = await getSheetsClient();
 
-    // GET - list todos
+    // ── GET ──────────────────────────────────────────────────
     if (req.method === "GET") {
       const userId = req.query && req.query.userId;
       if (!userId) return res.status(400).json({ error: "Missing userId" });
@@ -79,7 +77,7 @@ module.exports = async function(req, res) {
       return res.status(200).json({ success: true, todos: todos });
     }
 
-    // POST - create todo
+    // ── POST ─────────────────────────────────────────────────
     if (req.method === "POST") {
       const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
       const userId = body && body.userId;
@@ -104,17 +102,16 @@ module.exports = async function(req, res) {
       return res.status(200).json({ success: true, todoId: id });
     }
 
-    // PATCH - update todo status
+    // ── PATCH ────────────────────────────────────────────────
     if (req.method === "PATCH") {
       const url = req.url || "";
       const parts = url.split("/");
       const todoId = parts[parts.length - 1].split("?")[0];
 
       const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-      const status = body && body.status;
 
-      if (!todoId || !status) {
-        return res.status(400).json({ error: "Missing todoId or status" });
+      if (!todoId) {
+        return res.status(400).json({ error: "Missing todoId" });
       }
 
       const result = await sheets.spreadsheets.values.get({
@@ -130,11 +127,43 @@ module.exports = async function(req, res) {
       }
 
       const rowNum = rowIndex + 1;
-      await sheets.spreadsheets.values.update({
+      const updateData = [];
+
+      // 更新 status（完成/刪除）
+      if (body.status) {
+        updateData.push({
+          range: SHEET_NAME + "!C" + rowNum,
+          values: [[body.status]],
+        });
+      }
+
+      // 更新 content（編輯內容）
+      if (body.content !== undefined && body.content !== null) {
+        updateData.push({
+          range: SHEET_NAME + "!B" + rowNum,
+          values: [[body.content]],
+        });
+      }
+
+      // 更新 remindAt（編輯提醒時間）
+      if (body.remindAt !== undefined) {
+        const remindVal = body.remindAt ? body.remindAt.replace("T", " ") : "";
+        updateData.push({
+          range: SHEET_NAME + "!E" + rowNum,
+          values: [[remindVal]],
+        });
+      }
+
+      if (!updateData.length) {
+        return res.status(400).json({ error: "Nothing to update" });
+      }
+
+      await sheets.spreadsheets.values.batchUpdate({
         spreadsheetId: SHEETS_ID,
-        range: SHEET_NAME + "!C" + rowNum,
-        valueInputOption: "RAW",
-        requestBody: { values: [[status]] },
+        requestBody: {
+          valueInputOption: "RAW",
+          data: updateData,
+        },
       });
 
       return res.status(200).json({ success: true });
