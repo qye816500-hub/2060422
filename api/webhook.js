@@ -358,6 +358,16 @@ async function handleTextMessage(replyToken, text, userId, clients) {
     await handleRecentFiles(replyToken, userId, sheets);
     return;
   }
+  if (text === "我的筆記" || text === "筆記清單") {
+    await handleShowNotes(replyToken, userId, sheets);
+    return;
+  }
+  // 新增筆記：「筆記 內容」或「記 內容」
+  if (/^(筆記|記)\s+\S/.test(text)) {
+    const content = text.replace(/^(筆記|記)\s+/, "").trim();
+    await handleCreateNote(replyToken, content, userId, sheets);
+    return;
+  }
 
   if (/明天|行程|提醒|會議|今天|下午|上午|早上|後天|下週|下周|週一|週二|週三|週四|週五|週六|週日/.test(text)) {
     await handleCalendar(replyToken, text, userId, calendar, sheets);
@@ -1001,6 +1011,102 @@ async function handleRecentFiles(replyToken, userId, sheets) {
     return (i + 1) + ". " + String(r[1] || "") + "\n   " + String(r[2] || "") + "  " + String(r[11] || "").substring(0, 10) + "\n   " + String(r[6] || "");
   });
   await replyText(replyToken, "最近 " + results.length + " 筆檔案\n\n" + lines.join("\n\n"));
+}
+
+// ============================================================
+//  Notes
+// ============================================================
+
+async function handleCreateNote(replyToken, content, userId, sheets) {
+  try {
+    // 確保 Sheet 存在
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEETS_ID });
+    const exists = spreadsheet.data.sheets.some(function(s) { return s.properties.title === "收藏筆記"; });
+    if (!exists) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SHEETS_ID,
+        requestBody: { requests: [{ addSheet: { properties: { title: "收藏筆記" } } }] }
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEETS_ID,
+        range: "收藏筆記!A1:F1",
+        valueInputOption: "RAW",
+        requestBody: { values: [["id", "content", "tags", "userId", "createdAt", "updatedAt"]] }
+      });
+    }
+
+    const id = "N" + new Date().toISOString().replace(/[:\-T.Z]/g, "").substring(0, 14) + Math.floor(Math.random()*1000).toString().padStart(3,"0");
+    const now = formatDateTime(new Date());
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEETS_ID,
+      range: "收藏筆記!A:F",
+      valueInputOption: "RAW",
+      requestBody: { values: [[id, content, "", userId, now, now]] },
+    });
+
+    await replyFlex(replyToken, {
+      type: "flex",
+      altText: "📝 筆記已儲存！",
+      contents: {
+        type: "bubble",
+        header: {
+          type: "box", layout: "horizontal", paddingAll: "16px",
+          backgroundColor: "#E8F5E9",
+          contents: [
+            { type: "text", text: "📝", size: "xl", flex: 0 },
+            {
+              type: "box", layout: "vertical", flex: 1, paddingStart: "10px",
+              contents: [
+                { type: "text", text: "筆記已儲存！", weight: "bold", size: "lg", color: "#2E7D32" },
+                { type: "text", text: now, size: "xs", color: "#66BB6A" },
+              ],
+            },
+          ],
+        },
+        body: {
+          type: "box", layout: "vertical", paddingAll: "16px",
+          backgroundColor: "#F9FFF9",
+          contents: [
+            { type: "text", text: content, size: "sm", color: "#333", wrap: true },
+          ],
+        },
+        footer: {
+          type: "box", layout: "horizontal", spacing: "sm", paddingAll: "12px",
+          backgroundColor: "#F9FFF9",
+          contents: [
+            { type: "button", style: "secondary", height: "sm", flex: 1, action: { type: "message", label: "查看所有筆記", text: "我的筆記" } },
+            { type: "button", style: "primary", height: "sm", flex: 1, color: "#4CAF50", action: { type: "uri", label: "📝 開啟LIFF", uri: "https://liff.line.me/2009891497-Bd5P0goB?page=notes" } },
+          ],
+        },
+      },
+    });
+  } catch(err) {
+    await replyText(replyToken, "筆記儲存失敗：" + err.message);
+  }
+}
+
+async function handleShowNotes(replyToken, userId, sheets) {
+  try {
+    const result = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEETS_ID, range: "收藏筆記!A:F",
+    });
+    const rows = result.data.values || [];
+    const notes = rows.slice(1)
+      .filter(function(r) { return String(r[3] || "") === userId; })
+      .reverse().slice(0, 5);
+
+    if (!notes.length) {
+      await replyText(replyToken, "還沒有筆記。\n\n輸入「筆記 內容」就能新增！\n例如：筆記 明天要買牛奶");
+      return;
+    }
+
+    const lines = notes.map(function(r, i) {
+      return (i+1) + ". " + String(r[1]||"").substring(0, 30) + (String(r[1]||"").length > 30 ? "..." : "");
+    });
+    await replyText(replyToken, "最近 " + notes.length + " 則筆記：\n\n" + lines.join("\n") + "\n\n更多請開啟 LIFF 筆記頁面");
+  } catch(err) {
+    await replyText(replyToken, "讀取筆記失敗：" + err.message);
+  }
 }
 
 // ============================================================
